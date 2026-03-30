@@ -1,38 +1,23 @@
-# Neural Mesh Architecture
+# Architecture
 
-## System Design
+## Overview
 
-Distributed mesh network for agent communication with topology management and resilience.
+This component is part of the Helix Collective ecosystem.
 
-## Core Components
+## Components
 
-### 1. Mesh Network (neural_mesh.py)
-- Agent communication
-- Message routing
-- Network management
+- Core logic
+- Integration points
+- Data structures
 
-### 2. Topology Management
-- Network topology tracking
-- Agent discovery
-- Connection management
+## Design Patterns
 
-### 3. Synchronization
-- Real-time state sync
-- Message ordering
-- Consistency guarantees
-
-### 4. Resilience
-- Fault detection
-- Auto-recovery
-- Failover mechanisms
+- Modular architecture
+- Clean separation of concerns
+- Extensible interfaces
 
 ## Performance
 
-- Message latency: < 10ms
-- Agent discovery: < 100ms
-- Network sync: < 50ms
-- Scalability: 1000+ agents
-
----
-
-**Version:** 1.0
+- Optimized for production use
+- Scalable design
+- Resource efficient
