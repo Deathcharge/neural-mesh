@@ -1,93 +1,296 @@
 # neural-mesh
 
-Neural network mesh for distributed computing
+`neural-mesh` is a small Python library for asking several application-supplied AI providers the
+same question and measuring whether their responses agree. It bounds fan-out, concurrency, output
+tokens, prompt/response size, and provider latency; returns every success, timeout, invalid response,
+and redacted failure; and only selects a consensus answer when a configured textual quorum exists.
 
-## 🎯 Overview
+It is for developers building evaluation, decision-support, or quality-gating workflows. It is not a
+provider SDK, hosted Helix service, agent framework, or claim that majority agreement is factually
+correct.
 
-This repository is part of the [Helix Collective](https://github.com/Deathcharge/helix-platform), a comprehensive ecosystem for building intelligent, multi-agent systems with consciousness frameworks and advanced LLM integration.
+Status: **0.2.0 release candidate**. The core journey, tests, typing, CI, and distribution checks are
+implemented. Public package publication is still gated on owner confirmation of the package name and
+the repository's custom/mismatched license text.
 
-## 🚀 Quick Start
+## Fastest successful path
 
-### Installation
+Prerequisites: Python 3.10 through 3.13. The runtime has no third-party dependencies.
 
-\`\`\`bash
+```bash
 git clone https://github.com/Deathcharge/neural-mesh.git
 cd neural-mesh
-pip install -r requirements.txt
-\`\`\`
+python -m venv .venv
+```
 
-### Basic Usage
+Activate the environment:
 
-See the [examples/](examples/) directory for working examples and integration patterns.
+```bash
+# macOS/Linux
+source .venv/bin/activate
 
-## 📚 Documentation
+# Windows PowerShell
+.venv\Scripts\Activate.ps1
+```
 
-- **[Architecture](docs/ARCHITECTURE.md)** - System design and components
-- **[API Reference](docs/API.md)** - Complete API documentation
-- **[Integration Guide](docs/INTEGRATION.md)** - How to integrate with other Helix repos
-- **[Deployment](docs/DEPLOYMENT.md)** - Production deployment guide
-- **[Contributing](CONTRIBUTING.md)** - How to contribute
+Install and run the offline example:
 
-## 🔗 Related Repositories
+```bash
+python -m pip install .
+python examples/basic_consensus.py
+```
 
-- **[helix-platform](https://github.com/Deathcharge/helix-platform)** - Central hub and integration guide
-- **[helix-unified](https://github.com/Deathcharge/helix-unified)** - Main unified codebase
-- **[helix-core](https://github.com/Deathcharge/helix-core)** - Core utilities and LLM integration
+The example uses deterministic local callables—no API keys, network calls, or paid models. It returns
+three provider outcomes, groups the two matching retry recommendations, and selects their answer with
+`moderate` agreement.
 
-See [HELIX_REPOSITORY_INDEX.md](https://github.com/Deathcharge/helix-platform/blob/main/HELIX_REPOSITORY_INDEX.md) for the complete ecosystem map.
+## Minimal integration
 
-## 🧪 Testing
+Adapters own provider SDKs, credentials, pricing, and any deliberate retry policy. A callable receives
+the prompt and maximum output-token request, then returns either a string or `ProviderResponse`.
 
-Run tests with pytest:
+```python
+import asyncio
+from decimal import Decimal
 
-\`\`\`bash
-pytest tests/ -v --cov=src
-\`\`\`
+from neural_mesh import (
+    CallableProvider,
+    ConsensusConfig,
+    ConsensusEngine,
+    ProviderResponse,
+)
 
-## 🔄 CI/CD
 
-This repository uses GitHub Actions for:
-- ✅ Automated testing (Python 3.9, 3.10, 3.11)
-- ✅ Code linting (flake8)
-- ✅ Type checking (mypy)
-- ✅ Security scanning (bandit, safety)
-- ✅ Coverage reporting (Codecov)
+async def provider_a(prompt: str, max_tokens: int) -> ProviderResponse:
+    # Replace this body with your configured provider SDK call.
+    return ProviderResponse(
+        content="Use an idempotency key and bounded backoff with jitter.",
+        model="provider-a-model",
+        input_tokens=14,
+        output_tokens=10,
+        cost_usd=Decimal("0.0021"),
+    )
 
-See [.github/workflows/ci.yml](.github/workflows/ci.yml) for details.
 
-## 📋 Requirements
+async def provider_b(prompt: str, max_tokens: int) -> str:
+    return "Use an idempotency key and bounded backoff with jitter."
 
-- Python 3.9+
-- Dependencies listed in requirements.txt
-- Development dependencies in requirements-dev.txt
 
-## 🤝 Contributing
+async def main() -> None:
+    council = ConsensusEngine(
+        [
+            CallableProvider("provider-a", provider_a),
+            CallableProvider("provider-b", provider_b),
+        ],
+        ConsensusConfig(
+            max_providers=2,
+            max_concurrency=2,
+            timeout_seconds=20,
+            max_tokens_per_provider=500,
+        ),
+    )
+    result = await council.run("retry-policy", "How should this client retry?")
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for:
-- Development setup
-- Code style guide
-- Testing requirements
-- Pull request process
+    if result.consensus_text is None:
+        print("No textual quorum; inspect result.outcomes")
+    else:
+        print(result.agreement_level.value, result.consensus_text)
 
-## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+asyncio.run(main())
+```
 
-## 🆘 Support
+Provider classes may implement the same protocol directly:
 
-- **Issues**: Report bugs or request features via [GitHub Issues](https://github.com/Deathcharge/neural-mesh/issues)
-- **Discussions**: Ask questions in [GitHub Discussions](https://github.com/Deathcharge/neural-mesh/discussions)
-- **Documentation**: See the [docs/](docs/) directory
-- **Ecosystem**: Visit [helix-platform](https://github.com/Deathcharge/helix-platform)
+```python
+class MyProvider:
+    @property
+    def name(self) -> str:
+        return "my-provider"
 
-## 🎓 Learn More
+    async def complete(self, prompt: str, *, max_tokens: int) -> str:
+        ...
+```
 
-- [Helix Collective Repository Index](https://github.com/Deathcharge/helix-platform/blob/main/HELIX_REPOSITORY_INDEX.md)
-- [Architecture Guide](https://github.com/Deathcharge/helix-platform/blob/main/docs/ARCHITECTURE.md)
-- [Integration Examples](https://github.com/Deathcharge/helix-platform/tree/main/examples)
+## Result semantics
 
----
+`ConsensusResult` separates call health from answer agreement:
 
-**Status**: ✅ Production Ready  
-**Last Updated**: June 19, 2026  
-**Maintainer**: Helix Collective Contributors
+| Field | Meaning |
+| --- | --- |
+| `outcomes` | One ordered `ProviderOutcome` per selected provider. |
+| `providers_succeeded` | Providers that returned valid, non-empty, size-bounded text. |
+| `agreement_level` | `unanimous`, `strong`, `moderate`, `weak`, `insufficient`, or `error`. |
+| `agreement_ratio` | Winning cluster size divided by valid successful responses. |
+| `average_similarity` | Mean pairwise Jaccard score inside the winning cluster; `0` for a singleton. |
+| `winning_providers` | Providers in the deterministic winning cluster. |
+| `consensus_text` | The cluster medoid response, or `None` when minimum cluster/ratio rules fail. |
+| `reported_*_tokens` | Sum of reported token values; the completeness flag is true only when every selected provider completed and reported them. |
+| `reported_cost_usd` | Sum of adapter-reported cost; the completeness flag is true only when every selected provider completed and reported it. |
+| `usage_recorded` | Whether an optional usage store successfully recorded the run. |
+
+Provider failures expose stable codes (`provider_error`, `timeout`, or `invalid_response`) instead of
+raw exception text. The library never logs prompts, responses, exception messages, or credentials.
+Caller cancellation propagates and pending provider tasks are cancelled.
+Adapters must cooperate with `asyncio` cancellation. A provider coroutine that catches cancellation
+and never returns can outlive the configured timeout; Python cannot forcibly terminate it. Network
+timeouts and retry limits should also be configured inside the provider SDK or adapter.
+
+`ConsensusEngine` is event-loop scoped. Its concurrency semaphore is shared across concurrent
+`run()` calls on that engine, so request overlap cannot multiply the configured provider-call
+concurrency. Create a separate engine per event loop rather than moving one engine between loops.
+
+## How agreement is calculated
+
+The default strategy is intentionally local, deterministic, explainable, and dependency-free:
+
+1. normalize each valid response with Unicode NFKC and case folding;
+2. extract unique Unicode word tokens;
+3. calculate pairwise Jaccard similarity;
+4. build complete-link clusters in provider order, so a response joins only when it meets the
+   threshold against every existing cluster member;
+5. choose the largest cluster, then highest within-cluster similarity, then earliest provider order;
+6. select the cluster medoid only when minimum successful-response, cluster-size, and ratio rules pass.
+
+This is a consistency signal. Paraphrases may score poorly; copied wording around a wrong answer may
+score highly. Do not use agreement as factual confidence for medical, legal, financial, safety, or
+other high-stakes decisions without independent validation. Research on multi-agent debate likewise
+finds that outcomes depend on protocol and can be vulnerable to persuasion or convergence effects.
+
+## Configuration and hard limits
+
+| Setting | Default | Enforced range |
+| --- | ---: | ---: |
+| `max_providers` | 8 | 2–32 |
+| `max_concurrency` | 4 | 1–32 |
+| `timeout_seconds` | 30 | 0.01–600 |
+| `max_tokens_per_provider` | 1,000 | 1–1,000,000 |
+| `max_prompt_chars` | 100,000 | 1–1,000,000 |
+| `max_response_chars` | 200,000 | 1–2,000,000 |
+| `minimum_successful_responses` | 2 | 2–`max_providers` |
+| `minimum_cluster_size` | 2 | 2–`max_providers` |
+| `minimum_agreement_ratio` | 0.5 | 0–1 |
+| `similarity_threshold` | 0.72 | 0–1 |
+
+Invalid configuration, prompt, provider selection, or token overrides fail before any provider task
+starts. `provider_names=` can choose a unique configured subset for a request; `max_tokens=` can only
+lower the configured per-provider ceiling.
+
+The maximum requested output volume for one run is:
+
+```text
+selected providers × requested max tokens per provider
+```
+
+The prompt is additionally sent once to each selected provider. Currency cost depends on provider
+pricing and is therefore adapter-reported. No automatic retries occur, so one council run starts at
+most one call per selected provider. If an adapter retries internally, its limits and cost belong to
+that adapter and should be documented by the application.
+
+For cancellation-cooperative adapters, the approximate worst-case provider-call time for one run is
+`ceil(selected providers / max_concurrency) × timeout_seconds`, plus scheduling and local processing.
+The timeout clock starts when a call acquires a concurrency slot, not while it is queued.
+
+## Optional local usage history
+
+Persistence is off by default. To opt into a bounded JSONL file:
+
+```python
+from neural_mesh import ConsensusEngine, JsonlUsageStore
+
+store = JsonlUsageStore("./state/neural-mesh-usage.jsonl", max_file_bytes=10_000_000)
+council = ConsensusEngine(providers, usage_store=store)
+
+result = await council.run("release-gate", prompt)
+statistics = await store.statistics(max_records=50_000)
+```
+
+Records contain a SHA-256 task identifier, timestamp, agreement label, aggregate provider/token/cost
+counters, completeness flags, and duration. They do not contain task text, prompts, responses,
+provider exception text, provider names, or credentials. Writes are append-only and durable by
+default; file size and record-read count are bounded. Malformed records are counted and skipped. Log
+rotation and cross-process locking remain application responsibilities. The task hash is a stable
+pseudonymous identifier, not anonymization: short or predictable task labels may be recoverable by
+guessing, so access to the usage file should still be restricted. Share one `JsonlUsageStore` instance
+per path inside a process; multiple store instances and multiple processes require application-level
+coordination.
+
+## Architecture
+
+- `neural_mesh.consensus`: public provider protocol, validation, async orchestration, outcomes,
+  clustering, quorum, and usage-record creation.
+- `neural_mesh.usage`: optional bounded JSONL store and streaming statistics.
+- `neural_mesh.multi_ai_consensus`: compatibility aliases for the original extraction module path.
+- `examples/basic_consensus.py`: credential-free end-to-end evaluation path.
+- `tests/`: behavior, failure, cancellation, persistence, privacy, typing, and public-import coverage.
+
+The library intentionally does not import `helix-unified`, `helix-hub-shared`, provider SDKs, dotenv,
+or application frameworks.
+
+## Development and verification
+
+Install the pinned top-level development toolchain:
+
+```bash
+python -m pip install -e . -r requirements-dev.txt
+```
+
+Run the same checks protected by CI:
+
+```bash
+python -m ruff format --check neural_mesh tests examples
+python -m ruff check neural_mesh tests examples
+python -m mypy neural_mesh tests examples
+python -m pytest
+python -m build
+python -m twine check dist/*
+```
+
+`pytest` enforces branch-aware coverage of at least 95%. CI runs the checks on Python 3.10–3.13 and
+also exercises Windows. The build job inspects the artifact, installs the wheel into a clean virtual
+environment outside the checkout, imports the public package, and runs the offline example.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for change guidance and
+[docs/PRODUCTIZATION.md](docs/PRODUCTIZATION.md) for baseline evidence, decisions, priorities, and
+release gates.
+
+## Security and privacy
+
+- Keep API keys inside provider adapters or their SDK configuration; never put them in prompts or
+  provider names.
+- Treat prompts and responses as data disclosed to every selected provider according to that
+  provider's terms and retention policy.
+- Do not forward untrusted provider lists, token limits, storage paths, or adapter configuration from
+  a public route without server-side authorization and tighter application limits.
+- The package performs no telemetry, credential loading, networking of its own, or persistence by
+  default.
+- Report suspected vulnerabilities through GitHub private vulnerability reporting if the repository
+  has it enabled; do not include secrets or private prompt data in public issues.
+
+The baseline repository-wide security review covered every file and found no reportable vulnerability.
+It still drove bounded fan-out, error redaction, privacy-minimized opt-in storage, and explicit trust
+boundary documentation in this release candidate.
+The final diff-focused review covered all 21 changed or directly supporting files and found no
+surviving reportable vulnerability after CI credential/supply-chain and usage-file hardening.
+
+## Limitations and roadmap
+
+- Text similarity is not semantic equivalence or truth validation.
+- Provider-reported usage may be incomplete or inaccurate; completeness flags must be checked.
+- Timeouts cannot forcibly terminate provider adapters that suppress `asyncio` cancellation.
+- JSONL persistence does not currently rotate files or coordinate multiple processes.
+- There are no maintained built-in provider/router adapters yet; application-owned adapters keep the
+  first release independently testable and avoid forcing a provider stack.
+- Multi-round debate, peer review, judge synthesis, and pluggable similarity strategies are possible
+  follow-ons, not part of the first credible release.
+
+## License and publication status
+
+The checked-in [LICENSE](LICENSE) file is labeled “Business Source License 1.1” but contains custom
+terms and names “Helix Licensing System” rather than `neural-mesh`. It is not MIT. The file has not been
+changed because license selection and correction require owner/legal approval. Package metadata uses a
+custom `LicenseRef` so builds do not make a false OSI-license claim.
+
+Before publishing to a package index, the owner must confirm that this license applies, confirm the
+package name, and configure trusted publishing or release credentials. Until then, evaluate and use the
+repository only under the terms of the checked-in license.
