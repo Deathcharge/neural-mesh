@@ -27,7 +27,7 @@ The smallest useful wedge is orchestration and transparent agreement analysis, n
 
 ### Target user and primary use case
 
-The target user is a Python developer building an evaluation, decision-support, or quality-gating workflow that wants to compare several independently configured LLM calls without coupling application logic to a private Helix service.
+The target user is a Python developer building an evaluation, decision-support, or quality-gating workflow that wants to compare several independently configured LLM calls without coupling application logic to a private legacy service.
 
 Primary journey:
 
@@ -64,8 +64,10 @@ The package is a small composable primitive rather than a copy of `helix-unified
 - A consensus answer is returned only when the configured minimum cluster size and ratio are met.
 - Agreement is explicitly documented as a reproducibility/consistency signal, not a truth guarantee.
 - Usage persistence is opt-in and stores a SHA-256 task identifier, aggregate counters, and timing/cost metadata, not prompts or response text.
-- Modern `pyproject.toml` metadata is authoritative; legacy `setup.py` will be removed.
-- The checked-in license text remains unchanged. Package metadata and docs will stop claiming MIT; publication remains blocked on owner/legal confirmation because the file names a different licensed work and contains custom terms.
+- Modern `pyproject.toml` metadata is authoritative; legacy `setup.py` has been removed.
+- An installed CLI provides version/help output and a credential-free first-run demo without adding networking or credential behavior.
+- Current company, package, support, and license identity use Samsarix LLC based on explicit owner direction supplied on 2026-07-28. The license's grant, production threshold, Change Date, Change License, and other substantive clauses were not changed.
+- Release automation separates unprivileged build/test, provenance attestation, and protected OIDC publication jobs so build dependencies never receive publishing identity.
 
 ## Assumptions
 
@@ -119,7 +121,8 @@ There was no start command, service entry point, or deployment configuration to 
 - [ ] Maintained optional adapters for major provider routers, only if users validate demand.
 - [ ] Cross-process locking/rotation for high-volume JSONL persistence.
 - [ ] Benchmarks and property-based testing for clustering stability.
-- [ ] Signed releases and package publication automation after owner approval.
+- [x] Package publication automation with isolated provenance attestation and trusted publishing.
+- [ ] Signed release tags and external package-index/GitHub environment configuration.
 
 ## Implementation checklist
 
@@ -133,6 +136,7 @@ There was no start command, service entry point, or deployment configuration to 
 - [x] Modernize packaging and dependency declarations.
 - [x] Add CI and dependency maintenance configuration.
 - [x] Rewrite README and contribution guidance.
+- [x] Add an installed CLI, security policy, release runbook, and least-privilege publication workflow.
 - [x] Build and inspect both distribution artifacts from a clean environment.
 - [x] Install the wheel outside the source tree and run the documented example.
 - [x] Perform adversarial final review and close locally actionable findings.
@@ -141,6 +145,7 @@ There was no start command, service entry point, or deployment configuration to 
 
 - a fresh Python 3.10+ environment installs the wheel without private or undeclared dependencies;
 - the public package import works outside the repository;
+- the installed `neural-mesh demo` and `python -m neural_mesh demo` paths work outside the repository;
 - the offline example reproduces the documented primary journey;
 - no provider call starts for invalid or over-budget configuration;
 - timeouts, ordinary provider errors, no quorum, insufficient responses, and cancellation are covered by tests;
@@ -165,27 +170,28 @@ Verification was run from a clean Python 3.11 environment using the pinned top-l
 | Check | Final result |
 | --- | --- |
 | Ruff format and lint | Passed with Ruff 0.9.10. |
-| Strict mypy | Passed with mypy 1.14.1 across all eight source/test/example files. |
-| Pytest with branch coverage | 38 passed, 1 Windows capability skip; 97.71% coverage, above the 95% gate. |
+| Strict mypy | Passed with mypy 1.14.1 across all eleven source/test/example files. |
+| Pytest with branch coverage | 42 passed, 1 POSIX-mode assertion skipped on Windows; 97.88% coverage, above the 95% gate. |
 | Dependency consistency | No broken requirements in the clean development environment or either wheel-smoke environment. |
-| YAML configuration | Both CI and Dependabot files parsed successfully. |
+| YAML configuration | CI, release, and Dependabot files parsed successfully. |
 | Isolated distribution build | Built `neural_mesh-0.2.0.tar.gz` and `neural_mesh-0.2.0-py3-none-any.whl` from the sdist. |
 | Metadata validation | Twine passed both artifacts; metadata declares Python 3.10+, the custom license expression, and no required runtime dependency. |
-| Artifact inspection | Wheel contains all five runtime/typing files and the license; sdist also contains tests, example, changelog, contributor guide, and productization record. |
-| External wheel smoke | Clean Python 3.11 and 3.13 environments imported version 0.2.0 from `site-packages` and ran the offline example with the expected 2-of-3 moderate agreement. |
+| Artifact inspection | The 13-file wheel contains the seven-file runtime package, typing marker, CLI entry point, metadata, and license; the 35-file sdist also contains tests, security policy, examples, changelog, contributor guide, and product/release records. |
+| External wheel smoke | Clean Python 3.11.9 and 3.13.14 environments import version 0.2.0 from `site-packages`; both the installed `neural-mesh` command and `python -m neural_mesh` report the version, and the installed offline demo completes successfully. |
 
 The GitHub Actions matrix itself was authored and statically validated but was not executed on GitHub from this local workspace. Python 3.10 and 3.12 therefore remain CI-enforced compatibility claims rather than locally executed evidence in this audit.
 
 ## Distribution and sustainability
 
-The realistic distribution path is a pure-Python wheel and source distribution built from GitHub Actions, then published to a Python package index only after the owner confirms the package name, license terms, and release credentials. The core should remain small and dependency-free. Sustainability can come from paid support, integration work, or commercially licensed Helix offerings under owner-approved terms; the library should not invent subscriptions or usage billing.
+The realistic distribution path is a pure-Python wheel and source distribution built, attested, and published from the dedicated GitHub Actions release workflow after protected-environment approval. The core should remain small and dependency-free. Sustainability can come from Samsarix LLC support, integration work, or commercial licensing under the checked-in terms; the library should not invent subscriptions or usage billing.
 
-## Owner-, legal-, credential-, and production-blocked work
+## External account and production-blocked work
 
-- Confirm that the repository `LICENSE` intentionally applies to `neural-mesh`; it currently names “Helix Licensing System,” uses “Helix Collective” as licensor, and contains custom production-use thresholds.
-- Confirm ownership of the `neural-mesh` package name on the intended package index.
-- Supply package-index trusted-publishing configuration or release credentials.
-- Decide whether public release tags should be signed and which maintainers may publish.
+- Claim the `neural-mesh` package name. Its canonical PyPI endpoints returned 404 on 2026-07-28, but the name remains unreserved until the owner completes package-index setup.
+- Create the protected GitHub environment named `pypi` with required reviewers and tag restrictions.
+- Configure the PyPI trusted publisher for `Deathcharge/neural-mesh`, `release.yml`, and environment `pypi`; update all three coordinates together if the repository moves.
+- Decide which Samsarix maintainers may create signed release tags and approve publication.
+- Execute the hosted CI/release path; local validation cannot exercise GitHub environment approval, OIDC exchange, provenance upload, or actual package-index publication.
 
 ## Known risks
 

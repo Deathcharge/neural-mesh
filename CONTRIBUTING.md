@@ -63,10 +63,11 @@ Public bug reports should include the Python version, platform, minimal provider
 expected result, and redacted outcome. Never paste API keys, private prompts, model responses, or raw
 provider exceptions.
 
-For a suspected vulnerability, prefer GitHub private vulnerability reporting when enabled and avoid a
-public exploit report until the maintainer has acknowledged it.
+For a suspected vulnerability, follow [SECURITY.md](SECURITY.md) and email
+`support@samsarix.com`. Avoid a public exploit report until Samsarix has acknowledged it.
 
 ## License-sensitive changes
 
-Do not modify licensing terms, package ownership, trademarks, or publication configuration without
-explicit owner approval. The current license mismatch is tracked in `docs/PRODUCTIZATION.md`.
+`Samsarix LLC` is the current licensor and package author. Do not modify licensing terms, package
+ownership, trademarks, or publication configuration without explicit owner approval. Branding-only
+changes must still keep package metadata, `LICENSE`, README, and release documentation synchronized.

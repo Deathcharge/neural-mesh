@@ -12,6 +12,8 @@ independently installable release.
 - Structured success, error, invalid-response, and timeout outcomes.
 - Optional privacy-minimized bounded JSONL usage persistence.
 - Typed public package, runnable offline example, tests, and CI/release verification.
+- Installed `neural-mesh` CLI with version reporting and a credential-free demo.
+- Security policy and trusted-publishing release workflow.
 
 ### Changed
 
@@ -19,6 +21,7 @@ independently installable release.
 - Corrected consensus semantics: successful calls no longer count as agreement.
 - Consolidated package metadata in `pyproject.toml` and removed unrelated runtime dependencies.
 - Set the supported Python range to 3.10 through 3.13.
+- Updated current company, support, package, and license identity to Samsarix LLC.
 
 ### Removed
 

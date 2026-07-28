@@ -5,9 +5,9 @@ License text copyright (c) 2020 MariaDB plc, All Rights Reserved.
 
 Parameters
 
-Licensor:             Helix Collective
-Licensed Work:        Helix Licensing System
-                      The Licensed Work is (c) 2024 Helix Collective
+Licensor:             Samsarix LLC
+Licensed Work:        neural-mesh
+                      The Licensed Work is (c) 2024-2026 Samsarix LLC
 Additional Use Grant: None
 
 Change Date:          June 16, 2027
@@ -15,14 +15,14 @@ Change Date:          June 16, 2027
 Change License:       Apache License, Version 2.0
 
 For information about alternative licensing arrangements for the Licensed Work,
-please contact licensing@helixcollective.dev
+please contact contact@samsarix.com
 
 Notice
 
 Business Source License 1.1
 
 This Business Source License (this "Agreement") sets forth the terms and conditions
-under which Helix Collective ("Licensor") makes available certain software made
+under which Samsarix LLC ("Licensor") makes available certain software made
 available by Licensor under this Agreement (the "Licensed Work"). BY INSTALLING,
 COPYING, CONFIGURING, ACCESSING, OR USING THE LICENSED WORK, YOU AGREE THAT YOU
 HAVE READ, UNDERSTOOD, AND AGREE TO BE BOUND BY ALL OF THE TERMS AND CONDITIONS
@@ -45,7 +45,7 @@ the output of which is used for commercial advantage or to generate monetary rev
 If, at any time (including at the time of initial deployment of production use),
 the monthly volume of such production use exceeds 1,000 API calls or equivalent
 usage metric, then you must secure a commercial license key from Licensor or pay
-the fees specified in the pricing schedule at https://helixcollective.dev/pricing.
+the fees specified in the pricing schedule at https://www.samsarix.com/pricing.
 
 3. Failure to pay required fees does not relieve you of your obligation to pay such
 fees. If you do not pay the required fees, Licensor may, at its sole discretion,
@@ -95,4 +95,4 @@ constitutes the entire agreement between the parties with respect to the subject
 matter hereof and supersedes all prior negotiations, representations, and agreements,
 whether written or oral, relating to such subject matter.
 
-For commercial licensing inquiries, please contact: licensing@helixcollective.dev
+For commercial licensing inquiries, please contact: contact@samsarix.com

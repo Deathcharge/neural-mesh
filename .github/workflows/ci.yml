@@ -77,7 +77,9 @@ jobs:
           "${RUNNER_TEMP}/neural-mesh-smoke/bin/python" -m pip install --no-deps dist/neural_mesh-0.2.0-py3-none-any.whl
           cd "${RUNNER_TEMP}"
           "${RUNNER_TEMP}/neural-mesh-smoke/bin/python" -c "import neural_mesh; print(neural_mesh.__version__)"
-      - name: Run offline example against installed wheel
+          "${RUNNER_TEMP}/neural-mesh-smoke/bin/neural-mesh" --version
+          "${RUNNER_TEMP}/neural-mesh-smoke/bin/python" -m neural_mesh --version
+      - name: Run installed offline demo
         run: |
           cd "${RUNNER_TEMP}"
-          "${RUNNER_TEMP}/neural-mesh-smoke/bin/python" "${GITHUB_WORKSPACE}/examples/basic_consensus.py"
+          "${RUNNER_TEMP}/neural-mesh-smoke/bin/neural-mesh" demo

@@ -8,10 +8,13 @@ version = "0.2.0"
 description = "Bounded, auditable consensus across application-supplied AI providers"
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.10"
-license = "LicenseRef-Helix-BSL-1.1"
+license = "LicenseRef-Samsarix-BSL-1.1"
 license-files = ["LICENSE"]
 authors = [
-    { name = "Helix Collective", email = "collective@helix.ai" },
+    { name = "Samsarix LLC", email = "contact@samsarix.com" },
+]
+maintainers = [
+    { name = "Samsarix Support", email = "support@samsarix.com" },
 ]
 keywords = ["ai", "consensus", "llm", "multi-model", "orchestration"]
 classifiers = [
@@ -26,6 +29,9 @@ classifiers = [
 ]
 dependencies = []
 
+[project.scripts]
+neural-mesh = "neural_mesh.cli:main"
+
 [project.optional-dependencies]
 dev = [
     "build==1.2.2.post1",
@@ -38,10 +44,11 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/Deathcharge/neural-mesh"
+Homepage = "https://www.samsarix.com"
 Repository = "https://github.com/Deathcharge/neural-mesh.git"
 Issues = "https://github.com/Deathcharge/neural-mesh/issues"
 Changelog = "https://github.com/Deathcharge/neural-mesh/blob/main/CHANGELOG.md"
+Support = "https://www.samsarix.com"
 
 [tool.setuptools.packages.find]
 where = ["."]

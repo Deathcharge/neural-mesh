@@ -1,7 +1,7 @@
 """Compatibility import for the original extraction module path.
 
 The 0.1 extraction was not independently installable and depended on private
-Helix application code. New integrations should import from :mod:`neural_mesh`.
+legacy application code. New integrations should import from :mod:`neural_mesh`.
 """
 
 from .consensus import (

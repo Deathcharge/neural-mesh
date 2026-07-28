@@ -6,12 +6,13 @@ tokens, prompt/response size, and provider latency; returns every success, timeo
 and redacted failure; and only selects a consensus answer when a configured textual quorum exists.
 
 It is for developers building evaluation, decision-support, or quality-gating workflows. It is not a
-provider SDK, hosted Helix service, agent framework, or claim that majority agreement is factually
+provider SDK, hosted Samsarix service, agent framework, or claim that majority agreement is factually
 correct.
 
 Status: **0.2.0 release candidate**. The core journey, tests, typing, CI, and distribution checks are
-implemented. Public package publication is still gated on owner confirmation of the package name and
-the repository's custom/mismatched license text.
+implemented. Samsarix LLC has confirmed the current company and license identity. Public package
+publication is still gated on claiming the package name, configuring the protected PyPI trusted
+publisher, and passing the hosted release workflow.
 
 ## Fastest successful path
 
@@ -33,16 +34,28 @@ source .venv/bin/activate
 .venv\Scripts\Activate.ps1
 ```
 
-Install and run the offline example:
+Install and run the offline demo from the installed package:
 
 ```bash
 python -m pip install .
-python examples/basic_consensus.py
+neural-mesh --version
+neural-mesh demo
 ```
 
-The example uses deterministic local callables—no API keys, network calls, or paid models. It returns
-three provider outcomes, groups the two matching retry recommendations, and selects their answer with
-`moderate` agreement.
+`python -m neural_mesh demo` is equivalent. The demo uses deterministic local callables—no API keys,
+network calls, or paid models. It returns three provider outcomes, groups the two matching retry
+recommendations, and selects their answer with `moderate` agreement. The source-level
+`examples/basic_consensus.py` shows the same adapter pattern in one file.
+
+## Installed CLI
+
+```text
+usage: neural-mesh [-h] [--version] {demo} ...
+```
+
+The CLI is deliberately small: it proves that the installed artifact works and demonstrates result
+semantics without quietly loading credentials or contacting a model provider. Real provider calls
+remain explicit application code through the Python API.
 
 ## Minimal integration
 
@@ -220,12 +233,13 @@ coordination.
 - `neural_mesh.consensus`: public provider protocol, validation, async orchestration, outcomes,
   clustering, quorum, and usage-record creation.
 - `neural_mesh.usage`: optional bounded JSONL store and streaming statistics.
+- `neural_mesh.cli`: installed version/help command and credential-free end-to-end demo.
 - `neural_mesh.multi_ai_consensus`: compatibility aliases for the original extraction module path.
 - `examples/basic_consensus.py`: credential-free end-to-end evaluation path.
 - `tests/`: behavior, failure, cancellation, persistence, privacy, typing, and public-import coverage.
 
-The library intentionally does not import `helix-unified`, `helix-hub-shared`, provider SDKs, dotenv,
-or application frameworks.
+The library intentionally does not import the legacy `helix-unified` or `helix-hub-shared` projects,
+provider SDKs, dotenv, or application frameworks.
 
 ## Development and verification
 
@@ -248,11 +262,13 @@ python -m twine check dist/*
 
 `pytest` enforces branch-aware coverage of at least 95%. CI runs the checks on Python 3.10–3.13 and
 also exercises Windows. The build job inspects the artifact, installs the wheel into a clean virtual
-environment outside the checkout, imports the public package, and runs the offline example.
+environment outside the checkout, imports the public package, and runs both installed CLI forms. The
+separate release workflow repeats the gates, builds without publishing credentials, attests the
+distributions in an isolated job, and publishes through a protected PyPI environment.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for change guidance and
 [docs/PRODUCTIZATION.md](docs/PRODUCTIZATION.md) for baseline evidence, decisions, priorities, and
-release gates.
+release gates. Maintainers should follow [docs/RELEASING.md](docs/RELEASING.md).
 
 ## Security and privacy
 
@@ -264,8 +280,8 @@ release gates.
   a public route without server-side authorization and tighter application limits.
 - The package performs no telemetry, credential loading, networking of its own, or persistence by
   default.
-- Report suspected vulnerabilities through GitHub private vulnerability reporting if the repository
-  has it enabled; do not include secrets or private prompt data in public issues.
+- Report suspected vulnerabilities privately according to [SECURITY.md](SECURITY.md), normally at
+  `support@samsarix.com`; do not include secrets or private prompt data in public issues.
 
 The baseline repository-wide security review covered every file and found no reportable vulnerability.
 It still drove bounded fan-out, error redaction, privacy-minimized opt-in storage, and explicit trust
@@ -284,13 +300,18 @@ surviving reportable vulnerability after CI credential/supply-chain and usage-fi
 - Multi-round debate, peer review, judge synthesis, and pluggable similarity strategies are possible
   follow-ons, not part of the first credible release.
 
-## License and publication status
+## License, company, and publication status
 
-The checked-in [LICENSE](LICENSE) file is labeled “Business Source License 1.1” but contains custom
-terms and names “Helix Licensing System” rather than `neural-mesh`. It is not MIT. The file has not been
-changed because license selection and correction require owner/legal approval. Package metadata uses a
-custom `LicenseRef` so builds do not make a false OSI-license claim.
+`neural-mesh` is maintained by Samsarix LLC. General and commercial licensing inquiries go to
+`contact@samsarix.com`; private security reports go to `support@samsarix.com`.
 
-Before publishing to a package index, the owner must confirm that this license applies, confirm the
-package name, and configure trusted publishing or release credentials. Until then, evaluate and use the
-repository only under the terms of the checked-in license.
+The checked-in [LICENSE](LICENSE) contains custom Business Source License 1.1 terms for `neural-mesh`.
+It permits the uses described there, applies a commercial-license or fee requirement above the stated
+production-use threshold, and changes to Apache License 2.0 on June 16, 2027. It is not an MIT or
+present-day OSI-approved open-source license. Package metadata uses
+`LicenseRef-Samsarix-BSL-1.1` so distribution metadata does not make a false license claim.
+
+The release workflow is ready for PyPI trusted publishing but cannot reserve the package name or
+configure external accounts. Follow [docs/RELEASING.md](docs/RELEASING.md) before publishing. Until a
+release appears on the package index, install from a reviewed checkout or verified wheel and use it
+only under the checked-in license.
