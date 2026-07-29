@@ -1,8 +1,4 @@
-"""Compatibility import for the original extraction module path.
-
-The 0.1 extraction was not independently installable and depended on private
-legacy application code. New integrations should import from :mod:`neural_mesh`.
-"""
+"""Bounded, auditable consensus across application-supplied AI providers."""
 
 from .consensus import (
     AgreementLevel,
@@ -16,9 +12,9 @@ from .consensus import (
     ProviderResponse,
     ProviderStatus,
 )
+from .usage import JsonlUsageStore, UsageRecord, UsageStatistics, UsageStore
 
-MultiAIConsensus = ConsensusEngine
-ConsensusResponse = ConsensusResult
+__version__ = "0.2.0"
 
 __all__ = [
     "AgreementLevel",
@@ -26,11 +22,14 @@ __all__ = [
     "CompletionCallable",
     "ConsensusConfig",
     "ConsensusEngine",
-    "ConsensusResponse",
     "ConsensusResult",
-    "MultiAIConsensus",
+    "JsonlUsageStore",
     "Provider",
     "ProviderOutcome",
     "ProviderResponse",
     "ProviderStatus",
+    "UsageRecord",
+    "UsageStatistics",
+    "UsageStore",
+    "__version__",
 ]
