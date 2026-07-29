@@ -23,6 +23,10 @@ independently installable release.
 - Set the supported Python range to 3.10 through 3.13.
 - Updated current company, support, package, and license identity to Samsarix LLC.
 
+### Fixed
+
+- Classify `asyncio.wait_for` timeouts correctly on Python 3.10 as well as newer Python versions.
+
 ### Removed
 
 - Nonfunctional provider-specific compatibility clients whose API keys were ignored.

@@ -179,7 +179,7 @@ Verification was run from a clean Python 3.11 environment using the pinned top-l
 | Artifact inspection | The 13-file wheel contains the seven-file runtime package, typing marker, CLI entry point, metadata, and license; the 35-file sdist also contains tests, security policy, examples, changelog, contributor guide, and product/release records. |
 | External wheel smoke | Clean Python 3.11.9 and 3.13.14 environments import version 0.2.0 from `site-packages`; both the installed `neural-mesh` command and `python -m neural_mesh` report the version, and the installed offline demo completes successfully. |
 
-The GitHub Actions matrix itself was authored and statically validated but was not executed on GitHub from this local workspace. Python 3.10 and 3.12 therefore remain CI-enforced compatibility claims rather than locally executed evidence in this audit.
+The hosted GitHub Actions matrix was executed on 2026-07-28. Its first run exposed a Python 3.10-specific `asyncio.TimeoutError` compatibility issue that local Python 3.11/3.13 checks could not reproduce; the follow-up catches the cross-version exception explicitly and reruns the complete Linux 3.10–3.13, Windows 3.11, and distribution-smoke matrix.
 
 ## Distribution and sustainability
 

@@ -428,7 +428,7 @@ class ConsensusEngine:
                     provider.complete(prompt, max_tokens=max_tokens),
                     timeout=self.config.timeout_seconds,
                 )
-            except TimeoutError:
+            except asyncio.TimeoutError:
                 return ProviderOutcome(
                     provider=provider.name,
                     status=ProviderStatus.TIMEOUT,
