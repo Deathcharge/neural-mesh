@@ -43,7 +43,7 @@ Differentiation to preserve:
 1. Replay suites, scorers, immutable reports, policy gates, and baseline comparisons.
 2. Dependency-free event hooks with an OpenTelemetry-compatible attribute mapping.
 3. Maintained adapter examples for common provider SDKs and a consumer contract fixture.
-4. Cross-process-safe operational persistence, rotation guidance, and export tooling.
+4. Remote/shared persistence adapters and archive export tooling beyond local coordinated rotation.
 5. Pluggable semantic similarity and judge scorers with explicit trust, cost, and prompt-disclosure
    boundaries.
 6. Only after evidence: multi-round review/debate and optional synthesis strategies.

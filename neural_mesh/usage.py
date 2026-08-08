@@ -3,16 +3,19 @@
 from __future__ import annotations
 
 import asyncio
+import importlib
 import json
 import os
 import stat
 import threading
-from collections.abc import Mapping
+import time
+from collections.abc import Iterator, Mapping
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
-from typing import Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 _MAX_RECORD_BYTES = 16_384
 
@@ -130,6 +133,8 @@ class JsonlUsageStore:
         *,
         max_file_bytes: int = 50 * 1024 * 1024,
         durable: bool = True,
+        max_backup_files: int = 0,
+        lock_timeout_seconds: float = 5.0,
     ) -> None:
         candidate = Path(path).expanduser()
         if candidate.is_symlink():
@@ -142,9 +147,22 @@ class JsonlUsageStore:
             raise ValueError(f"max_file_bytes must be at least {_MAX_RECORD_BYTES}")
         if not isinstance(durable, bool):
             raise TypeError("durable must be a boolean")
+        if isinstance(max_backup_files, bool) or not isinstance(max_backup_files, int):
+            raise TypeError("max_backup_files must be an integer")
+        if not 0 <= max_backup_files <= 100:
+            raise ValueError("max_backup_files must be between 0 and 100")
+        if isinstance(lock_timeout_seconds, bool) or not isinstance(
+            lock_timeout_seconds, int | float
+        ):
+            raise TypeError("lock_timeout_seconds must be a number")
+        if not 0.01 <= lock_timeout_seconds <= 30.0:
+            raise ValueError("lock_timeout_seconds must be between 0.01 and 30")
         self.path = candidate.resolve(strict=False)
         self.max_file_bytes = max_file_bytes
         self.durable = durable
+        self.max_backup_files = max_backup_files
+        self.lock_timeout_seconds = float(lock_timeout_seconds)
+        self.lock_path = self.path.with_name(f"{self.path.name}.lock")
         self._write_lock = threading.Lock()
 
     async def append(self, record: UsageRecord) -> None:
@@ -176,29 +194,32 @@ class JsonlUsageStore:
 
         with self._write_lock:
             self.path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-            if self.path.is_symlink():
-                raise OSError("usage path must not be a symbolic link")
-            flags = os.O_APPEND | os.O_CREAT | os.O_WRONLY
-            flags |= getattr(os, "O_BINARY", 0)
-            flags |= getattr(os, "O_NOINHERIT", 0)
-            flags |= getattr(os, "O_NOFOLLOW", 0)
-            flags |= getattr(os, "O_NONBLOCK", 0)
-            descriptor = os.open(self.path, flags, 0o600)
-            try:
-                file_status = os.fstat(descriptor)
-                if not stat.S_ISREG(file_status.st_mode):
-                    raise OSError("usage path must be a regular file")
-                if file_status.st_size + len(payload) > self.max_file_bytes:
-                    raise OSError("usage store has reached max_file_bytes")
-                with os.fdopen(descriptor, "ab", closefd=True) as stream:
-                    descriptor = -1
-                    stream.write(payload)
-                    stream.flush()
-                    if self.durable:
-                        os.fsync(stream.fileno())
-            finally:
-                if descriptor >= 0:
-                    os.close(descriptor)
+            with _exclusive_file_lock(self.lock_path, self.lock_timeout_seconds):
+                if self.path.is_symlink():
+                    raise OSError("usage path must not be a symbolic link")
+                if (
+                    self.path.exists()
+                    and self.path.stat().st_size + len(payload) > self.max_file_bytes
+                ):
+                    if self.max_backup_files == 0:
+                        raise OSError("usage store has reached max_file_bytes")
+                    _rotate(self.path, self.max_backup_files)
+                descriptor = os.open(self.path, _append_flags(), 0o600)
+                try:
+                    file_status = os.fstat(descriptor)
+                    if not stat.S_ISREG(file_status.st_mode):
+                        raise OSError("usage path must be a regular file")
+                    if file_status.st_size + len(payload) > self.max_file_bytes:
+                        raise OSError("usage record cannot fit within max_file_bytes")
+                    with os.fdopen(descriptor, "ab", closefd=True) as stream:
+                        descriptor = -1
+                        stream.write(payload)
+                        stream.flush()
+                        if self.durable:
+                            os.fsync(stream.fileno())
+                finally:
+                    if descriptor >= 0:
+                        os.close(descriptor)
 
     def _statistics_sync(self, max_records: int) -> UsageStatistics:
         if not self.path.exists():
@@ -328,6 +349,77 @@ def _empty_statistics() -> UsageStatistics:
         reported_cost_usd=Decimal("0"),
         incomplete_cost_records=0,
     )
+
+
+def _append_flags() -> int:
+    flags = os.O_APPEND | os.O_CREAT | os.O_WRONLY
+    flags |= getattr(os, "O_BINARY", 0)
+    flags |= getattr(os, "O_NOINHERIT", 0)
+    flags |= getattr(os, "O_NOFOLLOW", 0)
+    flags |= getattr(os, "O_NONBLOCK", 0)
+    return flags
+
+
+@contextmanager
+def _exclusive_file_lock(path: Path, timeout_seconds: float) -> Iterator[None]:
+    if path.is_symlink():
+        raise OSError("usage lock path must not be a symbolic link")
+    descriptor = os.open(path, _append_flags(), 0o600)
+    locked = False
+    try:
+        if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+            raise OSError("usage lock path must be a regular file")
+        if os.name == "nt" and os.fstat(descriptor).st_size == 0:
+            os.write(descriptor, b"\0")
+        deadline = time.monotonic() + timeout_seconds
+        while True:
+            try:
+                _try_lock(descriptor)
+                locked = True
+                break
+            except OSError as error:
+                if time.monotonic() >= deadline:
+                    raise TimeoutError("usage store lock acquisition timed out") from error
+                time.sleep(0.01)
+        yield
+    finally:
+        if locked:
+            _unlock(descriptor)
+        os.close(descriptor)
+
+
+def _try_lock(descriptor: int) -> None:
+    os.lseek(descriptor, 0, os.SEEK_SET)
+    module: Any
+    if os.name == "nt":
+        module = importlib.import_module("msvcrt")
+        module.locking(descriptor, module.LK_NBLCK, 1)
+    else:
+        module = importlib.import_module("fcntl")
+        module.flock(descriptor, module.LOCK_EX | module.LOCK_NB)
+
+
+def _unlock(descriptor: int) -> None:
+    os.lseek(descriptor, 0, os.SEEK_SET)
+    module: Any
+    if os.name == "nt":
+        module = importlib.import_module("msvcrt")
+        module.locking(descriptor, module.LK_UNLCK, 1)
+    else:
+        module = importlib.import_module("fcntl")
+        module.flock(descriptor, module.LOCK_UN)
+
+
+def _rotate(path: Path, max_backup_files: int) -> None:
+    candidates = [
+        path.with_name(f"{path.name}.{index}") for index in range(1, max_backup_files + 1)
+    ]
+    if any(candidate.is_symlink() for candidate in candidates):
+        raise OSError("usage backup path must not be a symbolic link")
+    for index in range(max_backup_files, 0, -1):
+        source = path if index == 1 else candidates[index - 2]
+        if source.exists():
+            os.replace(source, candidates[index - 1])
 
 
 __all__ = [

@@ -119,7 +119,7 @@ There was no start command, service entry point, or deployment configuration to 
 
 - [ ] Pluggable similarity/aggregation strategies, including embeddings or an explicitly configured judge.
 - [ ] Maintained optional adapters for major provider routers, only if users validate demand.
-- [ ] Cross-process locking/rotation for high-volume JSONL persistence.
+- [x] Bounded cross-process locking and opt-in numbered rotation for local JSONL persistence.
 - [ ] Benchmarks and property-based testing for clustering stability.
 - [x] Package publication automation with isolated provenance attestation and trusted publishing.
 - [ ] Signed release tags and external package-index/GitHub environment configuration.
@@ -200,5 +200,6 @@ The realistic distribution path is a pure-Python wheel and source distribution b
 - A provider coroutine that suppresses `asyncio` cancellation can outlive the configured timeout.
 - A downstream application can still create privacy, authorization, rate-limit, or spend risks if it forwards untrusted input or configures unsafe adapters.
 - Hashed task labels are pseudonymous rather than anonymous and may be guessable when labels have low entropy.
-- JSONL rotation and coordination across store instances or processes remain application responsibilities.
+- Local JSONL rotation and store/process coordination were added after this baseline review; remote or
+  network-filesystem coordination remains application-owned.
 - The product has not yet been validated with external users; “viable” means coherent and testable, not product-market fit.

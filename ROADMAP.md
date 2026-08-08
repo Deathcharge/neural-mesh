@@ -41,7 +41,9 @@ Current hardening backlog:
 - Text-token Jaccard is explainable but semantically weak and can amplify correlated model error.
 - Custom BSL/commercial threshold may make library adoption and package-index expectations unclear.
 - Provider adapters can defeat cancellation, under-report cost, retry internally, or mishandle sensitive prompts.
-- JSONL persistence lacks cross-process coordination/rotation; provider names and task text are intentionally unavailable for richer diagnostics.
+- Local JSONL persistence now has bounded OS-level coordination and opt-in rotation; a remote/shared
+  storage adapter and archive export remain future work. Provider names and task text remain
+  intentionally unavailable for richer diagnostics.
 
 ## Samsarix adoption
 

@@ -247,7 +247,12 @@ Persistence is off by default. To opt into a bounded JSONL file:
 ```python
 from neural_mesh import ConsensusEngine, JsonlUsageStore
 
-store = JsonlUsageStore("./state/neural-mesh-usage.jsonl", max_file_bytes=10_000_000)
+store = JsonlUsageStore(
+    "./state/neural-mesh-usage.jsonl",
+    max_file_bytes=10_000_000,
+    max_backup_files=3,
+    lock_timeout_seconds=5,
+)
 council = ConsensusEngine(providers, usage_store=store)
 
 result = await council.run("release-gate", prompt)
@@ -256,13 +261,14 @@ statistics = await store.statistics(max_records=50_000)
 
 Records contain a SHA-256 task identifier, timestamp, agreement label, aggregate provider/token/cost
 counters, completeness flags, and duration. They do not contain task text, prompts, responses,
-provider exception text, provider names, or credentials. Writes are append-only and durable by
-default; file size and record-read count are bounded. Malformed records are counted and skipped. Log
-rotation and cross-process locking remain application responsibilities. The task hash is a stable
-pseudonymous identifier, not anonymization: short or predictable task labels may be recoverable by
-guessing, so access to the usage file should still be restricted. Share one `JsonlUsageStore` instance
-per path inside a process; multiple store instances and multiple processes require application-level
-coordination.
+provider exception text, provider names, or credentials. Writes are durable by default; file size and
+record-read count are bounded. Malformed records are counted and skipped. Independent store instances
+and processes coordinate through a permanent sibling `.lock` file with a bounded OS advisory lock.
+Optional numbered rotation occurs under that lock; with the default `max_backup_files=0`, a full store
+still fails closed. Statistics cover the active file only. The task hash is a stable pseudonymous
+identifier, not anonymization: short or predictable task labels may be recoverable by guessing, so
+the active, lock, and backup files should all be access-restricted. See
+[docs/PERSISTENCE.md](docs/PERSISTENCE.md) for filesystem and recovery boundaries.
 
 ## Opt-in observability
 
@@ -361,7 +367,8 @@ surviving reportable vulnerability after CI credential/supply-chain and usage-fi
 - Text similarity is not semantic equivalence or truth validation.
 - Provider-reported usage may be incomplete or inaccurate; completeness flags must be checked.
 - Timeouts cannot forcibly terminate provider adapters that suppress `asyncio` cancellation.
-- JSONL persistence does not currently rotate files or coordinate multiple processes.
+- JSONL locking relies on local-filesystem OS advisory locks; network/distributed filesystems require
+  a shared external store or lock proven for that filesystem.
 - There are no maintained built-in provider/router adapters yet; application-owned adapters keep the
   first release independently testable and avoid forcing a provider stack.
 - Multi-round debate, peer review, judge synthesis, and pluggable similarity strategies are possible
