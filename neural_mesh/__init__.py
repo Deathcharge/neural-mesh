@@ -31,7 +31,9 @@ from .evaluation import (
     EvaluationScore,
     EvaluationSummary,
     ExactMatchScorer,
+    ExcludesScorer,
     GateViolation,
+    JsonObjectScorer,
     ReplaySuite,
     ReportComparison,
     Scorer,
@@ -43,7 +45,7 @@ from .evaluation import (
 from .observability import AttributeValue, ConsensusEvent, ConsensusObserver
 from .usage import JsonlUsageStore, UsageRecord, UsageStatistics, UsageStore
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 __all__ = [
     "AgreementLevel",
@@ -69,7 +71,9 @@ __all__ = [
     "EvaluationScore",
     "EvaluationSummary",
     "ExactMatchScorer",
+    "ExcludesScorer",
     "GateViolation",
+    "JsonObjectScorer",
     "JsonlUsageStore",
     "OpenAIAsyncClient",
     "OpenAIResponsesProvider",

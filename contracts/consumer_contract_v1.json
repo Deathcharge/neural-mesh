@@ -1,11 +1,13 @@
 {
   "contract": "samsarix-neural-mesh-consumer/v1",
-  "minimum_version": "0.2.0",
+  "minimum_version": "0.3.0",
   "public_symbols": [
     "AnthropicMessagesProvider",
     "ConsensusEngine",
     "ConsensusEvent",
     "EvaluationRunner",
+    "ExcludesScorer",
+    "JsonObjectScorer",
     "OpenAIResponsesProvider",
     "ProviderResponse",
     "compare_reports"

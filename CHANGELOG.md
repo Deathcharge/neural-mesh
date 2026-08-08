@@ -3,7 +3,7 @@
 All notable changes are recorded here. This project follows semantic versioning after the first
 independently installable release.
 
-## Unreleased
+## 0.3.0 - Unreleased
 
 ### Security
 
@@ -22,6 +22,8 @@ independently installable release.
 - Optional maintained adapters for the official async OpenAI Responses and Anthropic Messages APIs,
   plus an executable Samsarix consumer compatibility fixture.
 - Bounded OS-level JSONL coordination across processes and optional numbered usage-file rotation.
+- Deterministic forbidden-content and required-JSON-key scorers for policy and structured-output
+  contracts.
 
 ## 0.2.0 - 2026-07-28
 

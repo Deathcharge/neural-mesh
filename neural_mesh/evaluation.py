@@ -98,6 +98,8 @@ class EvaluationCase:
     prompt: str = field(repr=False)
     expected_text: str | None = field(default=None, repr=False)
     required_substrings: tuple[str, ...] = field(default=(), repr=False)
+    forbidden_substrings: tuple[str, ...] = field(default=(), repr=False)
+    required_json_keys: tuple[str, ...] = field(default=(), repr=False)
     tags: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
@@ -112,6 +114,18 @@ class EvaluationCase:
             _require_short_text("required substring", required, maximum=10_000)
         if len(set(self.required_substrings)) != len(self.required_substrings):
             raise ValueError("required_substrings must not contain duplicates")
+        if len(self.forbidden_substrings) > 100:
+            raise ValueError("forbidden_substrings cannot contain more than 100 values")
+        for forbidden in self.forbidden_substrings:
+            _require_short_text("forbidden substring", forbidden, maximum=10_000)
+        if len(set(self.forbidden_substrings)) != len(self.forbidden_substrings):
+            raise ValueError("forbidden_substrings must not contain duplicates")
+        if len(self.required_json_keys) > 100:
+            raise ValueError("required_json_keys cannot contain more than 100 values")
+        for key in self.required_json_keys:
+            _require_short_text("required JSON key", key, maximum=500)
+        if len(set(self.required_json_keys)) != len(self.required_json_keys):
+            raise ValueError("required_json_keys must not contain duplicates")
         if len(self.tags) > 50:
             raise ValueError("tags cannot contain more than 50 values")
         for tag in self.tags:
@@ -210,6 +224,62 @@ class ContainsScorer:
             ScoreStatus.PASSED if passed else ScoreStatus.FAILED,
             value,
             "all_present" if passed else "required_content_missing",
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class ExcludesScorer:
+    """Reject selected answers containing any case-forbidden substring."""
+
+    case_sensitive: bool = False
+    name: str = "excludes_forbidden"
+
+    def score(self, case: EvaluationCase, result: ConsensusResult) -> EvaluationScore:
+        if not case.forbidden_substrings:
+            return EvaluationScore(self.name, ScoreStatus.SKIPPED, None, "requirements_absent")
+        if result.consensus_text is None:
+            return EvaluationScore(self.name, ScoreStatus.FAILED, 0.0, "consensus_absent")
+        actual = result.consensus_text if self.case_sensitive else result.consensus_text.casefold()
+        forbidden = (
+            case.forbidden_substrings
+            if self.case_sensitive
+            else tuple(value.casefold() for value in case.forbidden_substrings)
+        )
+        matches = sum(value in actual for value in forbidden)
+        passed = matches == 0
+        return EvaluationScore(
+            self.name,
+            ScoreStatus.PASSED if passed else ScoreStatus.FAILED,
+            1.0 - (matches / len(forbidden)),
+            "all_absent" if passed else "forbidden_content_present",
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class JsonObjectScorer:
+    """Require valid JSON object output containing configured top-level keys."""
+
+    name: str = "json_object"
+
+    def score(self, case: EvaluationCase, result: ConsensusResult) -> EvaluationScore:
+        if not case.required_json_keys:
+            return EvaluationScore(self.name, ScoreStatus.SKIPPED, None, "requirements_absent")
+        if result.consensus_text is None:
+            return EvaluationScore(self.name, ScoreStatus.FAILED, 0.0, "consensus_absent")
+        try:
+            parsed = json.loads(result.consensus_text)
+        except json.JSONDecodeError:
+            return EvaluationScore(self.name, ScoreStatus.FAILED, 0.0, "invalid_json")
+        if not isinstance(parsed, dict):
+            return EvaluationScore(self.name, ScoreStatus.FAILED, 0.0, "not_json_object")
+        matches = sum(key in parsed for key in case.required_json_keys)
+        value = matches / len(case.required_json_keys)
+        passed = matches == len(case.required_json_keys)
+        return EvaluationScore(
+            self.name,
+            ScoreStatus.PASSED if passed else ScoreStatus.FAILED,
+            value,
+            "all_keys_present" if passed else "required_key_missing",
         )
 
 
@@ -696,7 +766,13 @@ class EvaluationRunner:
         self._scorers = tuple(
             scorers
             if scorers is not None
-            else (ConsensusReachedScorer(), ExactMatchScorer(), ContainsScorer())
+            else (
+                ConsensusReachedScorer(),
+                ExactMatchScorer(),
+                ContainsScorer(),
+                ExcludesScorer(),
+                JsonObjectScorer(),
+            )
         )
         if not self._scorers:
             raise ValueError("scorers must contain at least one scorer")
@@ -980,6 +1056,14 @@ def _parse_replay_suite(root: Mapping[str, object]) -> ReplaySuite:
             _optional_list(case_value, "required_substrings"),
             "required_substrings",
         )
+        forbidden = _list_strings(
+            _optional_list(case_value, "forbidden_substrings"),
+            "forbidden_substrings",
+        )
+        required_json_keys = _list_strings(
+            _optional_list(case_value, "required_json_keys"),
+            "required_json_keys",
+        )
         tags = _list_strings(_optional_list(case_value, "tags"), "tags")
         case = EvaluationCase(
             case_id=_required_string(case_value, "id"),
@@ -987,6 +1071,8 @@ def _parse_replay_suite(root: Mapping[str, object]) -> ReplaySuite:
             prompt=prompt,
             expected_text=_optional_string(case_value, "expected_text"),
             required_substrings=tuple(required),
+            forbidden_substrings=tuple(forbidden),
+            required_json_keys=tuple(required_json_keys),
             tags=tuple(tags),
         )
         cases.append(case)
@@ -1417,7 +1503,9 @@ __all__ = [
     "EvaluationScore",
     "EvaluationSummary",
     "ExactMatchScorer",
+    "ExcludesScorer",
     "GateViolation",
+    "JsonObjectScorer",
     "ReplaySuite",
     "ReportComparison",
     "ScoreStatus",

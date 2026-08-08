@@ -11,9 +11,10 @@ It is for developers building evaluation, decision-support, or quality-gating wo
 provider SDK, hosted Samsarix service, agent framework, or claim that majority agreement is factually
 correct.
 
-Status: **0.2.0 release candidate**. The core journey, tests, typing, CI, and distribution checks are
-implemented. Samsarix LLC has confirmed the current company and license identity. Public package
-publication is still gated on claiming the package name, configuring the protected PyPI trusted
+Status: **0.3.0 release candidate**. Consensus, replay evaluation/regression gates, observability,
+official provider adapters, coordinated local persistence, tests, typing, CI, and distribution checks
+are implemented. Samsarix LLC has confirmed the current company and license identity. Public package
+publication remains gated on claiming the package name, configuring the protected PyPI trusted
 publisher, and passing the hosted release workflow.
 
 ## Fastest successful path
@@ -339,6 +340,7 @@ distributions in an isolated job, and publishes through a protected PyPI environ
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for change guidance,
 [docs/EVALUATION.md](docs/EVALUATION.md) for evaluation adoption,
+[docs/USE_CASES.md](docs/USE_CASES.md) for production workflows and deployment checks,
 [docs/COMPETITIVE_LANDSCAPE.md](docs/COMPETITIVE_LANDSCAPE.md) for product positioning, and
 [docs/PRODUCTIZATION.md](docs/PRODUCTIZATION.md) for baseline evidence. Maintainers should follow
 [docs/RELEASING.md](docs/RELEASING.md).

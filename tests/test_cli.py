@@ -11,7 +11,7 @@ from neural_mesh.cli import main
 
 def test_cli_prints_version(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["--version"]) == 0
-    assert capsys.readouterr().out.strip() == "0.2.0"
+    assert capsys.readouterr().out.strip() == "0.3.0"
 
 
 def test_cli_without_command_prints_help(capsys: pytest.CaptureFixture[str]) -> None:

@@ -29,6 +29,7 @@
       "prompt": "How should this request retry?",
       "expected_text": "Use bounded backoff with jitter.",
       "required_substrings": ["jitter"],
+      "forbidden_substrings": ["retry forever"],
       "tags": ["reliability"],
       "responses": {
         "alpha": {"content": "Use bounded backoff with jitter.", "model": "recorded-alpha", "input_tokens": 5, "output_tokens": 6, "cost_usd": "0.01"},

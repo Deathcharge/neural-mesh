@@ -27,6 +27,8 @@ from neural_mesh import (
     EvaluationScore,
     EvaluationSummary,
     ExactMatchScorer,
+    ExcludesScorer,
+    JsonObjectScorer,
     ProviderResponse,
     ReplaySuite,
     ScoreStatus,
@@ -134,11 +136,12 @@ async def test_replay_suite_produces_privacy_minimized_passing_report(tmp_path: 
     assert report.summary.provider_failure_rate == 0.0
     assert report.provider_names == ("alpha", "beta", "gamma")
     assert report.case_results[0].consensus_sha256 is not None
-    assert report.case_results[0].scores == (
+    assert report.case_results[0].scores[:3] == (
         EvaluationScore("consensus_reached", ScoreStatus.PASSED, 2 / 3, "consensus_selected"),
         EvaluationScore("exact_match", ScoreStatus.PASSED, 1.0, "matched"),
         EvaluationScore("contains_required", ScoreStatus.PASSED, 1.0, "all_present"),
     )
+    assert all(score.status is ScoreStatus.SKIPPED for score in report.case_results[0].scores[3:])
 
     artifact = json.dumps(report.to_dict())
     assert "How should this request retry?" not in artifact
@@ -219,6 +222,35 @@ def test_builtin_scorers_cover_skip_failure_and_normalization() -> None:
     assert not ConsensusReachedScorer().score(case, no_consensus).passed
     assert not ExactMatchScorer().score(case, no_consensus).passed
     assert not ContainsScorer().score(case, no_consensus).passed
+
+
+def test_forbidden_and_json_scorers_cover_structured_contracts() -> None:
+    case = EvaluationCase(
+        "structured",
+        "task",
+        "prompt",
+        forbidden_substrings=("secret", "password"),
+        required_json_keys=("decision", "reason"),
+    )
+    valid = _result('{"decision": "allow", "reason": "bounded"}')
+    assert ExcludesScorer().score(case, valid).passed
+    assert JsonObjectScorer().score(case, valid).passed
+
+    forbidden = _result('{"decision": "allow", "reason": "contains SECRET"}')
+    assert not ExcludesScorer().score(case, forbidden).passed
+    missing = _result('{"decision": "allow"}')
+    assert not JsonObjectScorer().score(case, missing).passed
+    invalid = _result("not json")
+    assert JsonObjectScorer().score(case, invalid).reason == "invalid_json"
+    array = _result("[]")
+    assert JsonObjectScorer().score(case, array).reason == "not_json_object"
+
+    no_requirements = EvaluationCase("none", "task", "prompt")
+    assert ExcludesScorer().score(no_requirements, valid).status is ScoreStatus.SKIPPED
+    assert JsonObjectScorer().score(no_requirements, valid).status is ScoreStatus.SKIPPED
+    no_consensus = replace(valid, consensus_text=None)
+    assert not ExcludesScorer().score(case, no_consensus).passed
+    assert not JsonObjectScorer().score(case, no_consensus).passed
 
 
 @pytest.mark.asyncio
@@ -559,6 +591,8 @@ def test_replay_loader_rejects_malformed_nested_values(
         lambda: EvaluationCase("id", "task", "prompt", required_substrings=("x", "x")),
         lambda: EvaluationCase("id", "task", "prompt", required_substrings=("x",) * 101),
         lambda: EvaluationCase("id", "task", "prompt", tags=("x", "x")),
+        lambda: EvaluationCase("id", "task", "prompt", forbidden_substrings=("x", "x")),
+        lambda: EvaluationCase("id", "task", "prompt", required_json_keys=("x", "x")),
         lambda: EvaluationCase("id", "task", "prompt", tags=tuple(f"x{i}" for i in range(51))),
         lambda: EvaluationCase("id", "task", "prompt", expected_text=1),  # type: ignore[arg-type]
         lambda: EvaluationCase("id", "task", "x" * 1_000_001),

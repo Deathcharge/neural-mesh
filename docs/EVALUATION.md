@@ -11,9 +11,9 @@ neural-mesh evaluate examples/support_policy_replay.json --output candidate.json
 ```
 
 The input uses schema `neural-mesh-replay-suite/v1`. Each case defines an id, task, prompt, optional
-exact text, optional required substrings, tags, and at least two recorded provider responses. A
-structured response can include model, input/output tokens, and cost; a string is shorthand for just
-the response content.
+exact text, required/forbidden substrings, required top-level JSON keys, tags, and at least two
+recorded provider responses. A structured response can include model, input/output tokens, and cost;
+a string is shorthand for just the response content.
 
 Suite policy can require a minimum case pass rate and mean agreement ratio; maximum provider failure
 rate, p95 duration, and total reported cost; and complete cost reporting so missing cost cannot
@@ -67,6 +67,8 @@ optional `Scorer` implementations, `EvaluationPolicy`, and `EvaluationRunConfig`
 receive an `EvaluationCase` and `ConsensusResult` and return an `EvaluationScore`. Exceptions and
 malformed scorer results are isolated as a redacted `scorer_error`.
 
-Built-in scorers are `ConsensusReachedScorer`, `ExactMatchScorer`, and `ContainsScorer`. Report and
-replay schemas are versioned; readers reject unknown versions rather than guessing at compatibility.
-Preserve accepted baselines immutably and regenerate them only through review.
+Built-in scorers are `ConsensusReachedScorer`, `ExactMatchScorer`, `ContainsScorer`,
+`ExcludesScorer`, and `JsonObjectScorer`. The last two enforce forbidden text and valid JSON objects
+with required top-level keys without invoking a judge model. Report and replay schemas are versioned;
+readers reject unknown versions rather than guessing at compatibility. Preserve accepted baselines
+immutably and regenerate them only through review.
