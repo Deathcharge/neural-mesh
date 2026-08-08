@@ -1,9 +1,11 @@
 # neural-mesh
 
-`neural-mesh` is a small Python library for asking several application-supplied AI providers the
-same question and measuring whether their responses agree. It bounds fan-out, concurrency, output
-tokens, prompt/response size, and provider latency; returns every success, timeout, invalid response,
-and redacted failure; and only selects a consensus answer when a configured textual quorum exists.
+`neural-mesh` is a Python library and CI toolkit for asking several application-supplied AI providers
+the same question, measuring whether their responses agree, and preventing quality, reliability,
+latency, or cost regressions. It bounds fan-out, concurrency, output tokens, prompt/response size,
+provider latency, evaluation size, and total provider calls; returns every success, timeout, invalid
+response, and redacted failure; and only selects a consensus answer when a configured textual quorum
+exists.
 
 It is for developers building evaluation, decision-support, or quality-gating workflows. It is not a
 provider SDK, hosted Samsarix service, agent framework, or claim that majority agreement is factually
@@ -47,15 +49,29 @@ network calls, or paid models. It returns three provider outcomes, groups the tw
 recommendations, and selects their answer with `moderate` agreement. The source-level
 `examples/basic_consensus.py` shows the same adapter pattern in one file.
 
+Run the checked-in, credential-free release gate:
+
+```bash
+neural-mesh evaluate examples/support_policy_replay.json --output report.json
+neural-mesh compare baseline.json report.json
+```
+
+Both commands return `0` when gates pass, `1` when a valid result violates policy, and `2` for invalid
+input or an operational error. The replay file contains recorded responses and expectations; the
+generated report contains identifiers, scores, aggregate measurements, and a consensus digest, but
+not prompts or response text. See [docs/EVALUATION.md](docs/EVALUATION.md) for the workflow and threat
+model.
+
 ## Installed CLI
 
 ```text
-usage: neural-mesh [-h] [--version] {demo} ...
+usage: neural-mesh [-h] [--version] {demo,evaluate,compare} ...
 ```
 
-The CLI is deliberately small: it proves that the installed artifact works and demonstrates result
-semantics without quietly loading credentials or contacting a model provider. Real provider calls
-remain explicit application code through the Python API.
+The CLI never loads credentials or contacts a model provider. `demo` proves the installed artifact,
+`evaluate` executes deterministic recorded provider responses, and `compare` enforces a regression
+budget against an immutable baseline. Live provider calls remain explicit application code through
+the Python API.
 
 ## Minimal integration
 
@@ -233,9 +249,12 @@ coordination.
 - `neural_mesh.consensus`: public provider protocol, validation, async orchestration, outcomes,
   clustering, quorum, and usage-record creation.
 - `neural_mesh.usage`: optional bounded JSONL store and streaming statistics.
-- `neural_mesh.cli`: installed version/help command and credential-free end-to-end demo.
+- `neural_mesh.evaluation`: replay suites, deterministic scorers, privacy-minimized reports, gates,
+  and baseline comparisons.
+- `neural_mesh.cli`: installed demo, evaluation, and comparison commands.
 - `neural_mesh.multi_ai_consensus`: compatibility aliases for the original extraction module path.
-- `examples/basic_consensus.py`: credential-free end-to-end evaluation path.
+- `examples/basic_consensus.py`: credential-free end-to-end consensus path.
+- `examples/support_policy_replay.json`: executable evaluation and CI-gate fixture.
 - `tests/`: behavior, failure, cancellation, persistence, privacy, typing, and public-import coverage.
 
 The library intentionally does not import the legacy `helix-unified` or `helix-hub-shared` projects,
@@ -266,9 +285,11 @@ environment outside the checkout, imports the public package, and runs both inst
 separate release workflow repeats the gates, builds without publishing credentials, attests the
 distributions in an isolated job, and publishes through a protected PyPI environment.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for change guidance and
-[docs/PRODUCTIZATION.md](docs/PRODUCTIZATION.md) for baseline evidence, decisions, priorities, and
-release gates. Maintainers should follow [docs/RELEASING.md](docs/RELEASING.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md) for change guidance,
+[docs/EVALUATION.md](docs/EVALUATION.md) for evaluation adoption,
+[docs/COMPETITIVE_LANDSCAPE.md](docs/COMPETITIVE_LANDSCAPE.md) for product positioning, and
+[docs/PRODUCTIZATION.md](docs/PRODUCTIZATION.md) for baseline evidence. Maintainers should follow
+[docs/RELEASING.md](docs/RELEASING.md).
 
 ## Security and privacy
 

@@ -3,6 +3,16 @@
 All notable changes are recorded here. This project follows semantic versioning after the first
 independently installable release.
 
+## Unreleased
+
+### Added
+
+- Replayable, credential-free evaluation suites with deterministic built-in scorers.
+- Privacy-minimized, versioned evaluation reports and configurable quality, reliability, latency,
+  cost, and cost-completeness gates.
+- Baseline comparison with case-level and aggregate regression budgets.
+- `neural-mesh evaluate` and `neural-mesh compare` commands with CI-friendly exit codes.
+
 ## 0.2.0 - 2026-07-28
 
 ### Added

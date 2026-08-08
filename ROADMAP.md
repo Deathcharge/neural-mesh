@@ -6,14 +6,28 @@ This roadmap separates four gates: merge, release, publication, and flagship ado
 
 Portfolio role: **reusable library or sdk**. Keep this as a small, independently versioned package. Samsarix Unified should consume it only through a public API adapter; private monorepo imports and copied implementations are out of scope.
 
-Current disposition: Merge the productization branch after exact-head verification and rollback-ref creation; release and adoption remain separate decisions.
+Current disposition: the productized 0.2.0 baseline is on `main`. The next milestone is a competitive
+evaluation and operations release; PyPI publication remains a separate owner-controlled gate.
+
+## Competitive evaluation release
+
+- Replayable suites with recorded multi-provider responses and deterministic expectations.
+- Versioned, privacy-minimized reports with quality, agreement, provider-failure, latency, cost, and
+  cost-completeness gates.
+- Baseline comparison with aggregate and case-level regression budgets suitable for CI.
+- Next: stable event hooks and OpenTelemetry-compatible GenAI attributes without a runtime telemetry
+  dependency.
+- Next: maintained provider adapter examples and a consumer-owned compatibility fixture.
+- Next: safer multi-process persistence and operational runbooks for support, release validation,
+  policy review, and model/router migration use cases.
 
 ## Stabilize the productized default
 
 - Keep the default branch buildable from a clean checkout and preserve exact-head CI evidence.
 - Keep Samsarix LLC branding, package identity, license metadata, and compatibility aliases internally consistent.
 - Preserve the pre-productization default under a rollback ref before merging; do not delete legacy history.
-- Review priority: approve BSL threshold then merge PR 2 configure protected PyPI publishing and validate a signed pre-release in one consumer.
+- Review priority: validate the evaluation contract in one real consumer, then approve the BSL
+  threshold, configure protected PyPI publishing, and validate a signed pre-release.
 
 ## Release candidate
 
