@@ -5,6 +5,11 @@ independently installable release.
 
 ## Unreleased
 
+### Security
+
+- Updated the development-only pytest pin to 9.1.1, above the fix for insecure Unix temporary
+  directory handling (CVE-2025-71176 / GHSA-6w46-j5rx-g56g).
+
 ### Added
 
 - Replayable, credential-free evaluation suites with deterministic built-in scorers.
