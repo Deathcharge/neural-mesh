@@ -1,0 +1,27 @@
+{
+  "contract": "samsarix-neural-mesh-consumer/v1",
+  "minimum_version": "0.2.0",
+  "public_symbols": [
+    "AnthropicMessagesProvider",
+    "ConsensusEngine",
+    "ConsensusEvent",
+    "EvaluationRunner",
+    "OpenAIResponsesProvider",
+    "ProviderResponse",
+    "compare_reports"
+  ],
+  "artifact_schemas": [
+    "neural-mesh-comparison/v1",
+    "neural-mesh-consensus-event/v1",
+    "neural-mesh-evaluation/v1",
+    "neural-mesh-replay-suite/v1"
+  ],
+  "required_outcome_codes": ["error", "invalid_response", "success", "timeout"],
+  "privacy_forbidden_in_default_events": [
+    "model",
+    "prompt",
+    "provider_name",
+    "response",
+    "task"
+  ]
+}

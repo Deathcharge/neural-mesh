@@ -1,5 +1,11 @@
 """Bounded, auditable consensus across application-supplied AI providers."""
 
+from .adapters import (
+    AnthropicAsyncClient,
+    AnthropicMessagesProvider,
+    OpenAIAsyncClient,
+    OpenAIResponsesProvider,
+)
 from .consensus import (
     AgreementLevel,
     CallableProvider,
@@ -41,6 +47,8 @@ __version__ = "0.2.0"
 
 __all__ = [
     "AgreementLevel",
+    "AnthropicAsyncClient",
+    "AnthropicMessagesProvider",
     "AttributeValue",
     "CallableProvider",
     "ComparisonPolicy",
@@ -63,6 +71,8 @@ __all__ = [
     "ExactMatchScorer",
     "GateViolation",
     "JsonlUsageStore",
+    "OpenAIAsyncClient",
+    "OpenAIResponsesProvider",
     "Provider",
     "ProviderOutcome",
     "ProviderResponse",

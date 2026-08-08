@@ -14,6 +14,8 @@ independently installable release.
 - `neural-mesh evaluate` and `neural-mesh compare` commands with CI-friendly exit codes.
 - Opt-in, bounded consensus observers with privacy-minimized OpenTelemetry-compatible event
   attributes and isolated sink failures.
+- Optional maintained adapters for the official async OpenAI Responses and Anthropic Messages APIs,
+  plus an executable Samsarix consumer compatibility fixture.
 
 ## 0.2.0 - 2026-07-28
 

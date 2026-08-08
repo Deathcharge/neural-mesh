@@ -141,6 +141,26 @@ class MyProvider:
         ...
 ```
 
+Optional maintained adapters are available for the official OpenAI Responses and Anthropic Messages
+SDKs:
+
+```bash
+python -m pip install "neural-mesh[providers]"
+```
+
+```python
+from neural_mesh import AnthropicMessagesProvider, OpenAIResponsesProvider
+
+providers = [
+    OpenAIResponsesProvider("your-openai-model"),
+    AnthropicMessagesProvider("your-anthropic-model"),
+]
+```
+
+They load SDKs lazily, accept configured async clients through dependency injection, pass the engine's
+output-token ceiling through to the official API, and report model/token metadata. They deliberately
+do not hard-code mutable provider pricing. See [docs/PROVIDERS.md](docs/PROVIDERS.md).
+
 ## Result semantics
 
 `ConsensusResult` separates call health from answer agreement:
@@ -269,6 +289,7 @@ and cardinality guidance.
 
 - `neural_mesh.consensus`: public provider protocol, validation, async orchestration, outcomes,
   clustering, quorum, and usage-record creation.
+- `neural_mesh.adapters`: optional official OpenAI Responses and Anthropic Messages SDK adapters.
 - `neural_mesh.usage`: optional bounded JSONL store and streaming statistics.
 - `neural_mesh.evaluation`: replay suites, deterministic scorers, privacy-minimized reports, gates,
   and baseline comparisons.
@@ -278,6 +299,8 @@ and cardinality guidance.
 - `neural_mesh.multi_ai_consensus`: compatibility aliases for the original extraction module path.
 - `examples/basic_consensus.py`: credential-free end-to-end consensus path.
 - `examples/support_policy_replay.json`: executable evaluation and CI-gate fixture.
+- `contracts/consumer_contract_v1.json`: executable producer-side compatibility contract for a
+  Samsarix consumer.
 - `tests/`: behavior, failure, cancellation, persistence, privacy, typing, and public-import coverage.
 
 The library intentionally does not import the legacy `helix-unified` or `helix-hub-shared` projects,
