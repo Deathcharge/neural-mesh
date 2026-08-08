@@ -34,17 +34,21 @@ from .evaluation import (
     load_evaluation_report,
     load_replay_suite,
 )
+from .observability import AttributeValue, ConsensusEvent, ConsensusObserver
 from .usage import JsonlUsageStore, UsageRecord, UsageStatistics, UsageStore
 
 __version__ = "0.2.0"
 
 __all__ = [
     "AgreementLevel",
+    "AttributeValue",
     "CallableProvider",
     "ComparisonPolicy",
     "CompletionCallable",
     "ConsensusConfig",
     "ConsensusEngine",
+    "ConsensusEvent",
+    "ConsensusObserver",
     "ConsensusReachedScorer",
     "ConsensusResult",
     "ContainsScorer",

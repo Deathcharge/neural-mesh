@@ -244,6 +244,27 @@ guessing, so access to the usage file should still be restricted. Share one `Jso
 per path inside a process; multiple store instances and multiple processes require application-level
 coordination.
 
+## Opt-in observability
+
+Pass asynchronous observer sinks to `ConsensusEngine` to receive a privacy-minimized completion event
+for each council run. The event exposes OpenTelemetry-compatible GenAI operation/workflow/token
+attributes plus bounded `neural_mesh.*` agreement, provider-outcome, cost, and persistence fields.
+The package does not install an observability SDK or configure global telemetry.
+
+```python
+class Observer:
+    async def record(self, event):
+        await my_sink.write(event.to_dict())
+
+
+council = ConsensusEngine(providers, observers=[Observer()], observer_timeout_seconds=1.0)
+```
+
+Observer failures and timeouts are isolated from the consensus result; caller cancellation still
+propagates. Events omit prompt/response content and provider/model names. See
+[docs/OBSERVABILITY.md](docs/OBSERVABILITY.md) for the event schema, OpenTelemetry mapping, privacy,
+and cardinality guidance.
+
 ## Architecture
 
 - `neural_mesh.consensus`: public provider protocol, validation, async orchestration, outcomes,
@@ -251,6 +272,8 @@ coordination.
 - `neural_mesh.usage`: optional bounded JSONL store and streaming statistics.
 - `neural_mesh.evaluation`: replay suites, deterministic scorers, privacy-minimized reports, gates,
   and baseline comparisons.
+- `neural_mesh.observability`: application-owned completion-event protocol and standard-compatible
+  attributes.
 - `neural_mesh.cli`: installed demo, evaluation, and comparison commands.
 - `neural_mesh.multi_ai_consensus`: compatibility aliases for the original extraction module path.
 - `examples/basic_consensus.py`: credential-free end-to-end consensus path.

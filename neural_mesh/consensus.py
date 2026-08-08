@@ -16,6 +16,7 @@ from decimal import Decimal
 from enum import Enum
 from typing import Protocol, runtime_checkable
 
+from .observability import ConsensusEvent, ConsensusObserver
 from .usage import UsageRecord, UsageStore
 
 logger = logging.getLogger(__name__)
@@ -23,6 +24,7 @@ logger = logging.getLogger(__name__)
 _TOKEN_PATTERN = re.compile(r"\w+", flags=re.UNICODE)
 _PROVIDER_NAME_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:/-]{0,99}")
 _MAX_TASK_CHARS = 500
+_MAX_OBSERVERS = 16
 
 
 class ProviderStatus(str, Enum):
@@ -288,10 +290,19 @@ class ConsensusEngine:
         config: ConsensusConfig | None = None,
         *,
         usage_store: UsageStore | None = None,
+        observers: Sequence[ConsensusObserver] = (),
+        observer_timeout_seconds: float = 1.0,
     ) -> None:
         self.config = config or ConsensusConfig()
         self._providers = tuple(providers)
         self._usage_store = usage_store
+        self._observers = tuple(observers)
+        if len(self._observers) > _MAX_OBSERVERS:
+            raise ValueError(f"observers cannot contain more than {_MAX_OBSERVERS} values")
+        if any(not isinstance(observer, ConsensusObserver) for observer in self._observers):
+            raise TypeError("observers must implement ConsensusObserver")
+        _require_float_range("observer_timeout_seconds", observer_timeout_seconds, 0.01, 30.0)
+        self._observer_timeout_seconds = observer_timeout_seconds
         self._provider_by_name = _validate_providers(self._providers, self.config)
         self._semaphore = asyncio.Semaphore(self.config.max_concurrency)
 
@@ -365,7 +376,27 @@ class ConsensusEngine:
             else:
                 result = replace(result, usage_recorded=True)
 
+        if self._observers:
+            await self._notify_observers(ConsensusEvent.from_result(result))
+
         return result
+
+    async def _notify_observers(self, event: ConsensusEvent) -> None:
+        async def notify(observer: ConsensusObserver) -> None:
+            try:
+                await asyncio.wait_for(
+                    observer.record(event),
+                    timeout=self._observer_timeout_seconds,
+                )
+            except asyncio.CancelledError:
+                raise
+            except Exception as error:
+                logger.warning(
+                    "Consensus observer failed with %s",
+                    type(error).__name__,
+                )
+
+        await asyncio.gather(*(notify(observer) for observer in self._observers))
 
     def _select_providers(
         self,

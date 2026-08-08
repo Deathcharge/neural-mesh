@@ -12,6 +12,8 @@ independently installable release.
   cost, and cost-completeness gates.
 - Baseline comparison with case-level and aggregate regression budgets.
 - `neural-mesh evaluate` and `neural-mesh compare` commands with CI-friendly exit codes.
+- Opt-in, bounded consensus observers with privacy-minimized OpenTelemetry-compatible event
+  attributes and isolated sink failures.
 
 ## 0.2.0 - 2026-07-28
 
