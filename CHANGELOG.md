@@ -8,7 +8,8 @@ independently installable release.
 ### Security
 
 - Updated the development-only pytest pin to 9.1.1, above the fix for insecure Unix temporary
-  directory handling (CVE-2025-71176 / GHSA-6w46-j5rx-g56g).
+  directory handling (CVE-2025-71176 / GHSA-6w46-j5rx-g56g), and updated pytest-asyncio to the
+  compatible 1.4.0 release.
 
 ### Added
 
