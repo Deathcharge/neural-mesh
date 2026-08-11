@@ -7,6 +7,8 @@ independently installable release.
 
 ### Security
 
+- Removed unnecessary Windows lock-file byte initialization so a raced symbolic-link pathname
+  cannot make the usage store append a NUL byte to another empty file.
 - Updated the development-only pytest pin to 9.1.1, above the fix for insecure Unix temporary
   directory handling (CVE-2025-71176 / GHSA-6w46-j5rx-g56g), and updated pytest-asyncio to the
   compatible 1.4.0 release.

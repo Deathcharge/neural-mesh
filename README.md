@@ -138,8 +138,7 @@ class MyProvider:
     def name(self) -> str:
         return "my-provider"
 
-    async def complete(self, prompt: str, *, max_tokens: int) -> str:
-        ...
+    async def complete(self, prompt: str, *, max_tokens: int) -> str: ...
 ```
 
 Optional maintained adapters are available for the official OpenAI Responses and Anthropic Messages

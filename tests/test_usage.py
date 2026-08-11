@@ -13,7 +13,7 @@ from typing import cast
 import pytest
 
 from neural_mesh import CallableProvider, ConsensusEngine, JsonlUsageStore, ProviderResponse
-from neural_mesh.usage import UsageRecord
+from neural_mesh.usage import UsageRecord, _exclusive_file_lock
 
 
 def usage_record(*, cost_complete: bool = True) -> UsageRecord:
@@ -235,6 +235,16 @@ async def test_lock_timeout_is_bounded(
     store = JsonlUsageStore(tmp_path / "usage.jsonl", lock_timeout_seconds=0.01)
     with pytest.raises(TimeoutError, match="lock acquisition"):
         await store.append(usage_record())
+
+
+@pytest.mark.skipif(os.name != "nt", reason="validates Windows byte-range locking")
+def test_windows_lock_does_not_modify_empty_file(tmp_path: Path) -> None:
+    lock_path = tmp_path / "usage.jsonl.lock"
+
+    with _exclusive_file_lock(lock_path, 0.1):
+        assert lock_path.stat().st_size == 0
+
+    assert lock_path.read_bytes() == b""
 
 
 def test_rotation_and_lock_configuration_are_validated(tmp_path: Path) -> None:

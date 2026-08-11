@@ -369,8 +369,6 @@ def _exclusive_file_lock(path: Path, timeout_seconds: float) -> Iterator[None]:
     try:
         if not stat.S_ISREG(os.fstat(descriptor).st_mode):
             raise OSError("usage lock path must be a regular file")
-        if os.name == "nt" and os.fstat(descriptor).st_size == 0:
-            os.write(descriptor, b"\0")
         deadline = time.monotonic() + timeout_seconds
         while True:
             try:
