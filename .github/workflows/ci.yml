@@ -50,6 +50,10 @@ jobs:
         run: python -m mypy neural_mesh tests examples
       - name: Test
         run: python -m pytest
+      - name: Run credential-free evaluation contracts
+        run: |
+          python -m neural_mesh evaluate examples/support_policy_replay.json --output support-report.json
+          python -m neural_mesh evaluate examples/structured_policy_replay.json --output policy-report.json
 
   distribution:
     name: Distribution smoke test
@@ -70,11 +74,11 @@ jobs:
           python -m build
           python -m twine check dist/*
       - name: Inspect wheel contents
-        run: python -m zipfile -l dist/neural_mesh-0.2.0-py3-none-any.whl
+        run: python -m zipfile -l dist/neural_mesh-0.3.0-py3-none-any.whl
       - name: Install wheel outside the checkout
         run: |
           python -m venv "${RUNNER_TEMP}/neural-mesh-smoke"
-          "${RUNNER_TEMP}/neural-mesh-smoke/bin/python" -m pip install --no-deps dist/neural_mesh-0.2.0-py3-none-any.whl
+          "${RUNNER_TEMP}/neural-mesh-smoke/bin/python" -m pip install --no-deps dist/neural_mesh-0.3.0-py3-none-any.whl
           cd "${RUNNER_TEMP}"
           "${RUNNER_TEMP}/neural-mesh-smoke/bin/python" -c "import neural_mesh; print(neural_mesh.__version__)"
           "${RUNNER_TEMP}/neural-mesh-smoke/bin/neural-mesh" --version

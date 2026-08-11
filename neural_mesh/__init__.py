@@ -1,5 +1,11 @@
 """Bounded, auditable consensus across application-supplied AI providers."""
 
+from .adapters import (
+    AnthropicAsyncClient,
+    AnthropicMessagesProvider,
+    OpenAIAsyncClient,
+    OpenAIResponsesProvider,
+)
 from .consensus import (
     AgreementLevel,
     CallableProvider,
@@ -12,24 +18,78 @@ from .consensus import (
     ProviderResponse,
     ProviderStatus,
 )
+from .evaluation import (
+    ComparisonPolicy,
+    ConsensusReachedScorer,
+    ContainsScorer,
+    EvaluationCase,
+    EvaluationCaseResult,
+    EvaluationPolicy,
+    EvaluationReport,
+    EvaluationRunConfig,
+    EvaluationRunner,
+    EvaluationScore,
+    EvaluationSummary,
+    ExactMatchScorer,
+    ExcludesScorer,
+    GateViolation,
+    JsonObjectScorer,
+    ReplaySuite,
+    ReportComparison,
+    Scorer,
+    ScoreStatus,
+    compare_reports,
+    load_evaluation_report,
+    load_replay_suite,
+)
+from .observability import AttributeValue, ConsensusEvent, ConsensusObserver
 from .usage import JsonlUsageStore, UsageRecord, UsageStatistics, UsageStore
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 __all__ = [
     "AgreementLevel",
+    "AnthropicAsyncClient",
+    "AnthropicMessagesProvider",
+    "AttributeValue",
     "CallableProvider",
+    "ComparisonPolicy",
     "CompletionCallable",
     "ConsensusConfig",
     "ConsensusEngine",
+    "ConsensusEvent",
+    "ConsensusObserver",
+    "ConsensusReachedScorer",
     "ConsensusResult",
+    "ContainsScorer",
+    "EvaluationCase",
+    "EvaluationCaseResult",
+    "EvaluationPolicy",
+    "EvaluationReport",
+    "EvaluationRunConfig",
+    "EvaluationRunner",
+    "EvaluationScore",
+    "EvaluationSummary",
+    "ExactMatchScorer",
+    "ExcludesScorer",
+    "GateViolation",
+    "JsonObjectScorer",
     "JsonlUsageStore",
+    "OpenAIAsyncClient",
+    "OpenAIResponsesProvider",
     "Provider",
     "ProviderOutcome",
     "ProviderResponse",
     "ProviderStatus",
+    "ReplaySuite",
+    "ReportComparison",
+    "ScoreStatus",
+    "Scorer",
     "UsageRecord",
     "UsageStatistics",
     "UsageStore",
     "__version__",
+    "compare_reports",
+    "load_evaluation_report",
+    "load_replay_suite",
 ]

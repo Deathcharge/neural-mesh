@@ -23,7 +23,11 @@ upgrading unless Samsarix announces otherwise.
 
 ## Security boundaries
 
-`neural-mesh` does not load credentials, contact providers, retry calls, expose a network listener, or
-persist data by default. Applications supply provider adapters and are responsible for authentication,
-authorization, provider retention policy, rate limiting, and deployment-specific spend controls.
-Agreement between model responses is not evidence that an answer is safe or factually correct.
+The dependency-free core does not load credentials, contact providers, retry calls, expose a network
+listener, or persist data by default. Optional official-provider adapters are activated only when an
+application explicitly constructs and invokes them; their SDK clients may load credentials from the
+environment, contact provider services, and apply SDK-configured transport or retry behavior. Local
+JSONL persistence and observer export are also opt-in. Applications remain responsible for
+authentication, authorization, provider retention policy, rate limiting, directory permissions,
+observer data handling, and deployment-specific spend controls. Agreement between model responses
+is not evidence that an answer is safe or factually correct.

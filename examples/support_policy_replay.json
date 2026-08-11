@@ -1,0 +1,53 @@
+{
+  "schema_version": "neural-mesh-replay-suite/v1",
+  "name": "support-policy",
+  "consensus_config": {
+    "max_providers": 3,
+    "max_concurrency": 2,
+    "minimum_successful_responses": 2,
+    "minimum_cluster_size": 2,
+    "minimum_agreement_ratio": 0.6,
+    "similarity_threshold": 0.8
+  },
+  "policy": {
+    "minimum_case_pass_rate": 1.0,
+    "minimum_mean_agreement_ratio": 0.6,
+    "maximum_provider_failure_rate": 0.0,
+    "maximum_total_cost_usd": "0.06",
+    "maximum_p95_duration_ms": 1000,
+    "require_complete_cost_reporting": true
+  },
+  "run_config": {
+    "max_cases": 10,
+    "max_case_concurrency": 2,
+    "max_total_provider_calls": 30
+  },
+  "cases": [
+    {
+      "id": "retry",
+      "task": "support/retry",
+      "prompt": "How should this request retry?",
+      "expected_text": "Use bounded backoff with jitter.",
+      "required_substrings": ["jitter"],
+      "forbidden_substrings": ["retry forever"],
+      "tags": ["reliability"],
+      "responses": {
+        "alpha": {"content": "Use bounded backoff with jitter.", "model": "recorded-alpha", "input_tokens": 5, "output_tokens": 6, "cost_usd": "0.01"},
+        "beta": {"content": "Use bounded backoff with jitter.", "model": "recorded-beta", "input_tokens": 5, "output_tokens": 6, "cost_usd": "0.01"},
+        "gamma": {"content": "Use a fixed retry delay.", "model": "recorded-gamma", "input_tokens": 5, "output_tokens": 6, "cost_usd": "0.01"}
+      }
+    },
+    {
+      "id": "escalate",
+      "task": "support/escalation",
+      "prompt": "What should happen after repeated failures?",
+      "expected_text": "Escalate to support.",
+      "tags": ["support"],
+      "responses": {
+        "alpha": {"content": "Escalate to support.", "model": "recorded-alpha", "input_tokens": 5, "output_tokens": 4, "cost_usd": "0.01"},
+        "beta": {"content": "Escalate to support.", "model": "recorded-beta", "input_tokens": 5, "output_tokens": 4, "cost_usd": "0.01"},
+        "gamma": {"content": "Ignore the failures.", "model": "recorded-gamma", "input_tokens": 5, "output_tokens": 4, "cost_usd": "0.01"}
+      }
+    }
+  ]
+}

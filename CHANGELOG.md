@@ -3,6 +3,31 @@
 All notable changes are recorded here. This project follows semantic versioning after the first
 independently installable release.
 
+## 0.3.0 - Unreleased
+
+### Security
+
+- Removed unnecessary Windows lock-file byte initialization so a raced symbolic-link pathname
+  cannot make the usage store append a NUL byte to another empty file.
+- Updated the development-only pytest pin to 9.1.1, above the fix for insecure Unix temporary
+  directory handling (CVE-2025-71176 / GHSA-6w46-j5rx-g56g), and updated pytest-asyncio to the
+  compatible 1.4.0 release.
+
+### Added
+
+- Replayable, credential-free evaluation suites with deterministic built-in scorers.
+- Privacy-minimized, versioned evaluation reports and configurable quality, reliability, latency,
+  cost, and cost-completeness gates.
+- Baseline comparison with case-level and aggregate regression budgets.
+- `neural-mesh evaluate` and `neural-mesh compare` commands with CI-friendly exit codes.
+- Opt-in, bounded consensus observers with privacy-minimized OpenTelemetry-compatible event
+  attributes and isolated sink failures.
+- Optional maintained adapters for the official async OpenAI Responses and Anthropic Messages APIs,
+  plus an executable Samsarix consumer compatibility fixture.
+- Bounded OS-level JSONL coordination across processes and optional numbered usage-file rotation.
+- Deterministic forbidden-content and required-JSON-key scorers for policy and structured-output
+  contracts.
+
 ## 0.2.0 - 2026-07-28
 
 ### Added

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import stat
@@ -12,7 +13,7 @@ from typing import cast
 import pytest
 
 from neural_mesh import CallableProvider, ConsensusEngine, JsonlUsageStore, ProviderResponse
-from neural_mesh.usage import UsageRecord
+from neural_mesh.usage import UsageRecord, _exclusive_file_lock
 
 
 def usage_record(*, cost_complete: bool = True) -> UsageRecord:
@@ -180,6 +181,81 @@ async def test_store_size_limit_raises_without_partial_append(tmp_path: Path) ->
     with pytest.raises(OSError):
         await store.append(usage_record())
     assert usage_path.stat().st_size == 16_300
+
+
+@pytest.mark.asyncio
+async def test_store_rotates_under_bounded_cross_process_lock(tmp_path: Path) -> None:
+    usage_path = tmp_path / "rotating.jsonl"
+    usage_path.write_bytes(b"x" * 16_300)
+    store = JsonlUsageStore(
+        usage_path,
+        max_file_bytes=16_384,
+        max_backup_files=2,
+        durable=False,
+    )
+
+    await store.append(usage_record())
+    assert (tmp_path / "rotating.jsonl.1").stat().st_size == 16_300
+    assert json.loads(usage_path.read_text(encoding="utf-8"))["agreement_level"] == "unanimous"
+    assert store.lock_path.exists()
+
+    usage_path.write_bytes(b"y" * 16_300)
+    await store.append(usage_record())
+    assert (tmp_path / "rotating.jsonl.2").stat().st_size == 16_300
+
+
+@pytest.mark.asyncio
+async def test_separate_store_instances_coordinate_concurrent_appends(tmp_path: Path) -> None:
+    path = tmp_path / "shared.jsonl"
+    first = JsonlUsageStore(path, durable=False)
+    second = JsonlUsageStore(path, durable=False)
+
+    await asyncio.gather(
+        *(first.append(usage_record()) for _ in range(20)),
+        *(second.append(usage_record()) for _ in range(20)),
+    )
+
+    lines = path.read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 40
+    assert all(json.loads(line)["task_sha256"] == "a" * 64 for line in lines)
+
+
+@pytest.mark.asyncio
+async def test_lock_timeout_is_bounded(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import neural_mesh.usage as usage
+
+    def always_locked(descriptor: int) -> None:
+        del descriptor
+        raise OSError("locked")
+
+    monkeypatch.setattr(usage, "_try_lock", always_locked)
+    store = JsonlUsageStore(tmp_path / "usage.jsonl", lock_timeout_seconds=0.01)
+    with pytest.raises(TimeoutError, match="lock acquisition"):
+        await store.append(usage_record())
+
+
+@pytest.mark.skipif(os.name != "nt", reason="validates Windows byte-range locking")
+def test_windows_lock_does_not_modify_empty_file(tmp_path: Path) -> None:
+    lock_path = tmp_path / "usage.jsonl.lock"
+
+    with _exclusive_file_lock(lock_path, 0.1):
+        assert lock_path.stat().st_size == 0
+
+    assert lock_path.read_bytes() == b""
+
+
+def test_rotation_and_lock_configuration_are_validated(tmp_path: Path) -> None:
+    with pytest.raises(TypeError, match="max_backup_files"):
+        JsonlUsageStore(tmp_path / "usage", max_backup_files=True)
+    with pytest.raises(ValueError, match="max_backup_files"):
+        JsonlUsageStore(tmp_path / "usage", max_backup_files=101)
+    with pytest.raises(TypeError, match="lock_timeout_seconds"):
+        JsonlUsageStore(tmp_path / "usage", lock_timeout_seconds=True)
+    with pytest.raises(ValueError, match="lock_timeout_seconds"):
+        JsonlUsageStore(tmp_path / "usage", lock_timeout_seconds=31)
 
 
 def test_symbolic_link_usage_path_is_rejected_when_supported(tmp_path: Path) -> None:

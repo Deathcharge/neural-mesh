@@ -1,17 +1,20 @@
 # neural-mesh
 
-`neural-mesh` is a small Python library for asking several application-supplied AI providers the
-same question and measuring whether their responses agree. It bounds fan-out, concurrency, output
-tokens, prompt/response size, and provider latency; returns every success, timeout, invalid response,
-and redacted failure; and only selects a consensus answer when a configured textual quorum exists.
+`neural-mesh` is a Python library and CI toolkit for asking several application-supplied AI providers
+the same question, measuring whether their responses agree, and preventing quality, reliability,
+latency, or cost regressions. It bounds fan-out, concurrency, output tokens, prompt/response size,
+provider latency, evaluation size, and total provider calls; returns every success, timeout, invalid
+response, and redacted failure; and only selects a consensus answer when a configured textual quorum
+exists.
 
 It is for developers building evaluation, decision-support, or quality-gating workflows. It is not a
 provider SDK, hosted Samsarix service, agent framework, or claim that majority agreement is factually
 correct.
 
-Status: **0.2.0 release candidate**. The core journey, tests, typing, CI, and distribution checks are
-implemented. Samsarix LLC has confirmed the current company and license identity. Public package
-publication is still gated on claiming the package name, configuring the protected PyPI trusted
+Status: **0.3.0 release candidate**. Consensus, replay evaluation/regression gates, observability,
+official provider adapters, coordinated local persistence, tests, typing, CI, and distribution checks
+are implemented. Samsarix LLC has confirmed the current company and license identity. Public package
+publication remains gated on claiming the package name, configuring the protected PyPI trusted
 publisher, and passing the hosted release workflow.
 
 ## Fastest successful path
@@ -47,15 +50,29 @@ network calls, or paid models. It returns three provider outcomes, groups the tw
 recommendations, and selects their answer with `moderate` agreement. The source-level
 `examples/basic_consensus.py` shows the same adapter pattern in one file.
 
+Run the checked-in, credential-free release gate:
+
+```bash
+neural-mesh evaluate examples/support_policy_replay.json --output report.json
+neural-mesh compare baseline.json report.json
+```
+
+Both commands return `0` when gates pass, `1` when a valid result violates policy, and `2` for invalid
+input or an operational error. The replay file contains recorded responses and expectations; the
+generated report contains identifiers, scores, aggregate measurements, and a consensus digest, but
+not prompts or response text. See [docs/EVALUATION.md](docs/EVALUATION.md) for the workflow and threat
+model.
+
 ## Installed CLI
 
 ```text
-usage: neural-mesh [-h] [--version] {demo} ...
+usage: neural-mesh [-h] [--version] {demo,evaluate,compare} ...
 ```
 
-The CLI is deliberately small: it proves that the installed artifact works and demonstrates result
-semantics without quietly loading credentials or contacting a model provider. Real provider calls
-remain explicit application code through the Python API.
+The CLI never loads credentials or contacts a model provider. `demo` proves the installed artifact,
+`evaluate` executes deterministic recorded provider responses, and `compare` enforces a regression
+budget against an immutable baseline. Live provider calls remain explicit application code through
+the Python API.
 
 ## Minimal integration
 
@@ -121,9 +138,28 @@ class MyProvider:
     def name(self) -> str:
         return "my-provider"
 
-    async def complete(self, prompt: str, *, max_tokens: int) -> str:
-        ...
+    async def complete(self, prompt: str, *, max_tokens: int) -> str: ...
 ```
+
+Optional maintained adapters are available for the official OpenAI Responses and Anthropic Messages
+SDKs:
+
+```bash
+python -m pip install "neural-mesh[providers]"
+```
+
+```python
+from neural_mesh import AnthropicMessagesProvider, OpenAIResponsesProvider
+
+providers = [
+    OpenAIResponsesProvider("your-openai-model"),
+    AnthropicMessagesProvider("your-anthropic-model"),
+]
+```
+
+They load SDKs lazily, accept configured async clients through dependency injection, pass the engine's
+output-token ceiling through to the official API, and report model/token metadata. They deliberately
+do not hard-code mutable provider pricing. See [docs/PROVIDERS.md](docs/PROVIDERS.md).
 
 ## Result semantics
 
@@ -211,7 +247,12 @@ Persistence is off by default. To opt into a bounded JSONL file:
 ```python
 from neural_mesh import ConsensusEngine, JsonlUsageStore
 
-store = JsonlUsageStore("./state/neural-mesh-usage.jsonl", max_file_bytes=10_000_000)
+store = JsonlUsageStore(
+    "./state/neural-mesh-usage.jsonl",
+    max_file_bytes=10_000_000,
+    max_backup_files=3,
+    lock_timeout_seconds=5,
+)
 council = ConsensusEngine(providers, usage_store=store)
 
 result = await council.run("release-gate", prompt)
@@ -220,22 +261,52 @@ statistics = await store.statistics(max_records=50_000)
 
 Records contain a SHA-256 task identifier, timestamp, agreement label, aggregate provider/token/cost
 counters, completeness flags, and duration. They do not contain task text, prompts, responses,
-provider exception text, provider names, or credentials. Writes are append-only and durable by
-default; file size and record-read count are bounded. Malformed records are counted and skipped. Log
-rotation and cross-process locking remain application responsibilities. The task hash is a stable
-pseudonymous identifier, not anonymization: short or predictable task labels may be recoverable by
-guessing, so access to the usage file should still be restricted. Share one `JsonlUsageStore` instance
-per path inside a process; multiple store instances and multiple processes require application-level
-coordination.
+provider exception text, provider names, or credentials. Writes are durable by default; file size and
+record-read count are bounded. Malformed records are counted and skipped. Independent store instances
+and processes coordinate through a permanent sibling `.lock` file with a bounded OS advisory lock.
+Optional numbered rotation occurs under that lock; with the default `max_backup_files=0`, a full store
+still fails closed. Statistics cover the active file only. The task hash is a stable pseudonymous
+identifier, not anonymization: short or predictable task labels may be recoverable by guessing, so
+the active, lock, and backup files should all be access-restricted. See
+[docs/PERSISTENCE.md](docs/PERSISTENCE.md) for filesystem and recovery boundaries.
+
+## Opt-in observability
+
+Pass asynchronous observer sinks to `ConsensusEngine` to receive a privacy-minimized completion event
+for each council run. The event exposes OpenTelemetry-compatible GenAI operation/workflow/token
+attributes plus bounded `neural_mesh.*` agreement, provider-outcome, cost, and persistence fields.
+The package does not install an observability SDK or configure global telemetry.
+
+```python
+class Observer:
+    async def record(self, event):
+        await my_sink.write(event.to_dict())
+
+
+council = ConsensusEngine(providers, observers=[Observer()], observer_timeout_seconds=1.0)
+```
+
+Observer failures and timeouts are isolated from the consensus result; caller cancellation still
+propagates. Events omit prompt/response content and provider/model names. See
+[docs/OBSERVABILITY.md](docs/OBSERVABILITY.md) for the event schema, OpenTelemetry mapping, privacy,
+and cardinality guidance.
 
 ## Architecture
 
 - `neural_mesh.consensus`: public provider protocol, validation, async orchestration, outcomes,
   clustering, quorum, and usage-record creation.
+- `neural_mesh.adapters`: optional official OpenAI Responses and Anthropic Messages SDK adapters.
 - `neural_mesh.usage`: optional bounded JSONL store and streaming statistics.
-- `neural_mesh.cli`: installed version/help command and credential-free end-to-end demo.
+- `neural_mesh.evaluation`: replay suites, deterministic scorers, privacy-minimized reports, gates,
+  and baseline comparisons.
+- `neural_mesh.observability`: application-owned completion-event protocol and standard-compatible
+  attributes.
+- `neural_mesh.cli`: installed demo, evaluation, and comparison commands.
 - `neural_mesh.multi_ai_consensus`: compatibility aliases for the original extraction module path.
-- `examples/basic_consensus.py`: credential-free end-to-end evaluation path.
+- `examples/basic_consensus.py`: credential-free end-to-end consensus path.
+- `examples/support_policy_replay.json`: executable evaluation and CI-gate fixture.
+- `contracts/consumer_contract_v1.json`: executable producer-side compatibility contract for a
+  Samsarix consumer.
 - `tests/`: behavior, failure, cancellation, persistence, privacy, typing, and public-import coverage.
 
 The library intentionally does not import the legacy `helix-unified` or `helix-hub-shared` projects,
@@ -266,9 +337,12 @@ environment outside the checkout, imports the public package, and runs both inst
 separate release workflow repeats the gates, builds without publishing credentials, attests the
 distributions in an isolated job, and publishes through a protected PyPI environment.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for change guidance and
-[docs/PRODUCTIZATION.md](docs/PRODUCTIZATION.md) for baseline evidence, decisions, priorities, and
-release gates. Maintainers should follow [docs/RELEASING.md](docs/RELEASING.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md) for change guidance,
+[docs/EVALUATION.md](docs/EVALUATION.md) for evaluation adoption,
+[docs/USE_CASES.md](docs/USE_CASES.md) for production workflows and deployment checks,
+[docs/COMPETITIVE_LANDSCAPE.md](docs/COMPETITIVE_LANDSCAPE.md) for product positioning, and
+[docs/PRODUCTIZATION.md](docs/PRODUCTIZATION.md) for baseline evidence. Maintainers should follow
+[docs/RELEASING.md](docs/RELEASING.md).
 
 ## Security and privacy
 
@@ -294,7 +368,8 @@ surviving reportable vulnerability after CI credential/supply-chain and usage-fi
 - Text similarity is not semantic equivalence or truth validation.
 - Provider-reported usage may be incomplete or inaccurate; completeness flags must be checked.
 - Timeouts cannot forcibly terminate provider adapters that suppress `asyncio` cancellation.
-- JSONL persistence does not currently rotate files or coordinate multiple processes.
+- JSONL locking relies on local-filesystem OS advisory locks; network/distributed filesystems require
+  a shared external store or lock proven for that filesystem.
 - There are no maintained built-in provider/router adapters yet; application-owned adapters keep the
   first release independently testable and avoid forcing a provider stack.
 - Multi-round debate, peer review, judge synthesis, and pluggable similarity strategies are possible

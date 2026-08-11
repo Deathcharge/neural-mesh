@@ -11,7 +11,7 @@ from neural_mesh.multi_ai_consensus import MultiAIConsensus
 
 
 def test_public_version_and_compatibility_alias() -> None:
-    assert neural_mesh.__version__ == "0.2.0"
+    assert neural_mesh.__version__ == "0.3.0"
     assert MultiAIConsensus is ConsensusEngine
     assert "ConsensusResult" in neural_mesh.__all__
     assert ConsensusResult.__module__ == "neural_mesh.consensus"
@@ -27,4 +27,4 @@ def test_offline_example_runs(capsys: object) -> None:
 
 def test_result_module_is_json_serializable_via_example(capsys: object) -> None:
     del capsys
-    assert json.dumps({"version": neural_mesh.__version__}) == '{"version": "0.2.0"}'
+    assert json.dumps({"version": neural_mesh.__version__}) == '{"version": "0.3.0"}'
