@@ -39,7 +39,7 @@ dev = [
     "pytest==9.1.1",
     "pytest-asyncio==1.4.0",
     "pytest-cov==6.0.0",
-    "ruff==0.9.10",
+    "ruff==0.16.2",
     "twine==6.1.0",
 ]
 providers-openai = ["openai>=2.46,<3"]
