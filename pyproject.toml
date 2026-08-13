@@ -40,7 +40,7 @@ dev = [
     "pytest-asyncio==1.4.0",
     "pytest-cov==7.1.0",
     "ruff==0.9.10",
-    "twine==6.1.0",
+    "twine==7.0.0",
 ]
 providers-openai = ["openai>=2.46,<3"]
 providers-anthropic = ["anthropic>=0.117,<1"]
