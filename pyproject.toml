@@ -35,7 +35,7 @@ neural-mesh = "neural_mesh.cli:main"
 [project.optional-dependencies]
 dev = [
     "build==1.2.2.post1",
-    "mypy==1.14.1",
+    "mypy==2.3.0",
     "pytest==9.1.1",
     "pytest-asyncio==1.4.0",
     "pytest-cov==6.0.0",
