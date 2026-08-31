@@ -42,9 +42,9 @@ dev = [
     "ruff==0.16.4",
     "twine==7.0.0",
 ]
-providers-openai = ["openai>=2.46,<3"]
+providers-openai = ["openai>=2.46,<4"]
 providers-anthropic = ["anthropic>=0.117,<1"]
-providers = ["openai>=2.46,<3", "anthropic>=0.117,<1"]
+providers = ["openai>=2.46,<4", "anthropic>=0.117,<1"]
 
 [project.urls]
 Homepage = "https://www.samsarix.com"
